@@ -1,0 +1,37 @@
+param(
+    [string]$Configuration = "Release"
+)
+
+$ErrorActionPreference = "Stop"
+
+$root = Split-Path -Parent $PSScriptRoot
+$artifacts = Join-Path $root "artifacts"
+$payloadRoot = Join-Path $artifacts "payload"
+$servicePublish = Join-Path $payloadRoot "Service"
+$trayPublish = Join-Path $payloadRoot "Tray"
+$msiOutput = Join-Path $root "GoMicFuckYourself.Installer\bin\$Configuration\net48\msi"
+
+if (-not (Get-Command wix.exe -ErrorAction SilentlyContinue)) {
+    throw "wix.exe cannot be found. Install WiX with: dotnet tool install --global wix"
+}
+
+New-Item -ItemType Directory -Force -Path $servicePublish | Out-Null
+New-Item -ItemType Directory -Force -Path $trayPublish | Out-Null
+
+dotnet publish (Join-Path $root "GoMicFuckYourself.Service\GoMicFuckYourself.Service.csproj") `
+    -c $Configuration `
+    -o $servicePublish
+
+dotnet publish (Join-Path $root "App\App.csproj") `
+    -c $Configuration `
+    -o $trayPublish
+
+dotnet run --project (Join-Path $root "GoMicFuckYourself.Installer\GoMicFuckYourself.Installer.csproj") -c $Configuration -- `
+    --payload-root $payloadRoot
+
+$msi = Get-ChildItem -Path $msiOutput -Filter *.msi | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+if ($null -ne $msi) {
+    $hash = (Get-FileHash -Path $msi.FullName -Algorithm SHA256).Hash
+    Write-Host "MSI: $($msi.FullName)"
+    Write-Host "SHA256: $hash"
+}
