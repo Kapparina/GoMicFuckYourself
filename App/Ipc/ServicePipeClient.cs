@@ -48,7 +48,7 @@ public sealed class ServicePipeClient : IServicePipeClient
     private static async Task<PipeResponse<T>> SendAsync<T>(string type, object? payload, CancellationToken cancellationToken)
     {
         using var pipe = new NamedPipeClientStream(".", PipeConstants.PipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
-        await pipe.ConnectAsync(5000, cancellationToken);
+        await ConnectAsync(pipe, cancellationToken);
 
         using var writer = new StreamWriter(pipe, new UTF8Encoding(false), leaveOpen: true) { AutoFlush = true };
         using var reader = new StreamReader(pipe, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
@@ -78,6 +78,19 @@ public sealed class ServicePipeClient : IServicePipeClient
             Error = envelope.Error,
             Payload = data
         };
+    }
+
+    private static async Task ConnectAsync(NamedPipeClientStream pipe, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await pipe.ConnectAsync(1500, cancellationToken);
+        }
+        catch (TimeoutException)
+        {
+            AgentProcess.TryStartInstalledAgent();
+            await pipe.ConnectAsync(5000, cancellationToken);
+        }
     }
 
     private sealed class PipeRequest
