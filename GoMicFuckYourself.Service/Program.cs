@@ -5,6 +5,11 @@ using GoMicFuckYourself.Service.Ipc;
 
 var builder = Host.CreateApplicationBuilder(args);
 
+builder.Services.AddWindowsService(options =>
+{
+    options.ServiceName = "GoMicFuckYourself.Service";
+});
+
 builder.Services.AddSingleton<IAudioController, WindowsAudioController>();
 builder.Services.AddSingleton<IPolicyConfigInterop, PolicyConfigInterop>();
 builder.Services.AddSingleton<IConfigStore, ConfigStore>();
