@@ -202,7 +202,7 @@ public partial class MainForm : Form
     {
         if (!status.IsConfigured)
         {
-            return "Service is running. No microphone is configured yet.";
+            return "Agent is running. No microphone is configured yet.";
         }
 
         if (!string.IsNullOrWhiteSpace(status.LastError))
