@@ -4,9 +4,9 @@ internal sealed class PayloadLayout
 {
     public string OutputRoot { get; set; } = string.Empty;
     public string PayloadRoot { get; set; } = string.Empty;
-    public string ServicePayloadRoot { get; set; } = string.Empty;
+    public string AgentPayloadRoot { get; set; } = string.Empty;
     public string TrayPayloadRoot { get; set; } = string.Empty;
-    public string ServiceExecutablePath { get; set; } = string.Empty;
+    public string AgentExecutablePath { get; set; } = string.Empty;
     public string TrayExecutablePath { get; set; } = string.Empty;
     public string DefaultConfigPath { get; set; } = string.Empty;
 
@@ -16,16 +16,16 @@ internal sealed class PayloadLayout
         var payloadRoot = GetOption(args, "--payload-root")
                           ?? Path.GetFullPath(Path.Combine(outputRoot, "payload"));
 
-        var servicePayloadRoot = Path.Combine(payloadRoot, "Service");
+        var agentPayloadRoot = Path.Combine(payloadRoot, "Agent");
         var trayPayloadRoot = Path.Combine(payloadRoot, "Tray");
         var defaultConfigPath = Path.Combine(outputRoot, "Assets", "service-config.json");
 
-        var serviceExecutablePath = Path.Combine(servicePayloadRoot, "GoMicFuckYourself.Service.exe");
+        var agentExecutablePath = Path.Combine(agentPayloadRoot, "GoMicFuckYourself.Agent.exe");
         var trayExecutablePath = Path.Combine(trayPayloadRoot, "GoMicFuckYourself.Tray.exe");
 
-        EnsureDirectoryExists(servicePayloadRoot, "service payload");
+        EnsureDirectoryExists(agentPayloadRoot, "agent payload");
         EnsureDirectoryExists(trayPayloadRoot, "tray payload");
-        EnsureFileExists(serviceExecutablePath, "service executable");
+        EnsureFileExists(agentExecutablePath, "agent executable");
         EnsureFileExists(trayExecutablePath, "tray executable");
         EnsureFileExists(defaultConfigPath, "default config asset");
 
@@ -33,9 +33,9 @@ internal sealed class PayloadLayout
         {
             OutputRoot = outputRoot,
             PayloadRoot = payloadRoot,
-            ServicePayloadRoot = servicePayloadRoot,
+            AgentPayloadRoot = agentPayloadRoot,
             TrayPayloadRoot = trayPayloadRoot,
-            ServiceExecutablePath = serviceExecutablePath,
+            AgentExecutablePath = agentExecutablePath,
             TrayExecutablePath = trayExecutablePath,
             DefaultConfigPath = defaultConfigPath
         };
