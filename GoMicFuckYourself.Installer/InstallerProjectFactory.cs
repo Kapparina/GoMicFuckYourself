@@ -7,25 +7,14 @@ internal static class InstallerProjectFactory
 {
     public static ManagedProject Create(PayloadLayout payload)
     {
-        var serviceFile = new File(new Id("SERVICE_EXE"), payload.ServiceExecutablePath)
-        {
-            ServiceInstaller = new ServiceInstaller
-            {
-                Name = InstallerConstants.ServiceName,
-                DisplayName = InstallerConstants.ServiceDisplayName,
-                Description = InstallerConstants.ServiceDescription,
-                StartOn = SvcEvent.Install,
-                StopOn = SvcEvent.InstallUninstall_Wait,
-                RemoveOn = SvcEvent.Uninstall_Wait
-            }
-        };
+        var agentFile = new File(new Id("AGENT_EXE"), payload.AgentExecutablePath);
 
         var project = new ManagedProject(
             InstallerConstants.ProductName,
             new Dir(
                 new Id("INSTALLDIR"),
                 InstallerConstants.InstallRoot,
-                new Dir("Service", BuildPayloadDirectory(payload.ServicePayloadRoot, serviceFile)),
+                new Dir("Agent", BuildPayloadDirectory(payload.AgentPayloadRoot, agentFile)),
                 new Dir("Tray", BuildPayloadDirectory(payload.TrayPayloadRoot))),
             new Dir(
                 new Id("PROGRAMDATADIR"),
@@ -34,8 +23,13 @@ internal static class InstallerProjectFactory
             new RegValue(
                 WixSharp.RegistryHive.LocalMachine,
                 @"Software\Microsoft\Windows\CurrentVersion\Run",
+                InstallerConstants.AgentAutorunName,
+                "[INSTALLDIR]Agent\\GoMicFuckYourself.Agent.exe"),
+            new RegValue(
+                WixSharp.RegistryHive.LocalMachine,
+                @"Software\Microsoft\Windows\CurrentVersion\Run",
                 InstallerConstants.TrayAutorunName,
-                "[INSTALLDIR]Tray\\GoMicFuckYourself.Tray.exe --first-run"));
+                "[INSTALLDIR]Tray\\GoMicFuckYourself.Tray.exe"));
 
         project.GUID = new Guid(InstallerConstants.UpgradeCode);
         project.Version = new Version(InstallerConstants.Version);
@@ -50,7 +44,6 @@ internal static class InstallerProjectFactory
         project.ControlPanelInfo.InstallLocation = "[INSTALLDIR]";
         project.ControlPanelInfo.NoModify = true;
         project.ControlPanelInfo.NoRepair = false;
-        project.ControlPanelInfo.Readme = "[INSTALLDIR]Tray\\GoMicFuckYourself.Tray.exe";
         project.Description = InstallerConstants.ProductDescription;
         project.ControlPanelInfo.ProductIcon = payload.TrayExecutablePath;
         project.MajorUpgradeStrategy = MajorUpgradeStrategy.Default;
