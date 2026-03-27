@@ -67,6 +67,16 @@ internal static class InstallerProjectFactory
 
         entities.AddRange(pinnedFiles);
 
+        AddDirectoryContents(entities, sourceDirectory, pinnedPaths);
+
+        return entities.ToArray();
+    }
+
+    private static void AddDirectoryContents(
+        ICollection<WixEntity> entities,
+        string sourceDirectory,
+        ISet<string> pinnedPaths)
+    {
         foreach (var filePath in Directory.GetFiles(sourceDirectory))
         {
             var fullPath = Path.GetFullPath(filePath);
@@ -78,6 +88,12 @@ internal static class InstallerProjectFactory
             entities.Add(new File(filePath));
         }
 
-        return entities.ToArray();
+        foreach (var directoryPath in Directory.GetDirectories(sourceDirectory))
+        {
+            var childEntities = new List<WixEntity>();
+            AddDirectoryContents(childEntities, directoryPath, pinnedPaths);
+
+            entities.Add(new Dir(Path.GetFileName(directoryPath), childEntities.ToArray()));
+        }
     }
 }
