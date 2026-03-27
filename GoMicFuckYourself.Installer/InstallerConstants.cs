@@ -10,7 +10,6 @@ internal static class InstallerConstants
     public const string Version = "0.1.0";
     public const string UpgradeCode = "7E383A7A-9580-48A6-818E-B173FEE980C8";
 
-    public const string LaunchOnExitCheckboxProperty = "WIXUI_EXITDIALOGOPTIONALCHECKBOX";
     public const string LaunchOnExitCheckboxText = "Launch GoMicFuckYourself setup";
 
     public static readonly string InstallRoot = @"%ProgramFiles%\GoMicFuckYourself";

@@ -1,6 +1,7 @@
 using GoMicFuckYourself.Contracts.Audio;
 using GoMicFuckYourself.Contracts.Configuration;
 using GoMicFuckYourself.Contracts.Enforcement;
+using GoMicFuckYourself.Tray.Models;
 
 namespace GoMicFuckYourself.Tray;
 
@@ -73,9 +74,7 @@ public partial class MainForm : Form
     {
         await RunBusyAsync(async () =>
         {
-            var statusResponse = await _pipeClient.GetStatusAsync();
-            var devicesResponse = await _pipeClient.ListCaptureDevicesAsync();
-            var configResponse = await _pipeClient.GetConfigAsync();
+            var (statusResponse, devicesResponse, configResponse) = await LoadAgentStateAsync();
 
             if (!statusResponse.Success)
             {
@@ -125,6 +124,34 @@ public partial class MainForm : Form
         });
     }
 
+    private async Task<(
+        PipeResponse<MicEnforcementStatus> Status,
+        PipeResponse<List<CaptureDeviceInfo>> Devices,
+        PipeResponse<ServiceConfig> Config)> LoadAgentStateAsync()
+    {
+        if (_firstRun)
+        {
+            var isReady = await AgentProcess.EnsureAgentReadyAsync(CancellationToken.None, startIfNeeded: true);
+            if (!isReady)
+            {
+                throw new TimeoutException("The agent did not start in time.");
+            }
+        }
+
+        return await QueryAgentStateAsync();
+    }
+
+    private async Task<(
+        PipeResponse<MicEnforcementStatus> Status,
+        PipeResponse<List<CaptureDeviceInfo>> Devices,
+        PipeResponse<ServiceConfig> Config)> QueryAgentStateAsync()
+    {
+        var statusResponse = await _pipeClient.GetStatusAsync();
+        var devicesResponse = await _pipeClient.ListCaptureDevicesAsync();
+        var configResponse = await _pipeClient.GetConfigAsync();
+        return (statusResponse, devicesResponse, configResponse);
+    }
+
     private async Task SaveAsync(bool enforceAfterSave)
     {
         await RunBusyAsync(async () =>
@@ -152,6 +179,12 @@ public partial class MainForm : Form
             {
                 AutorunRegistry.EnableForCurrentUser();
                 ProcessCoordinator.RestartAgent();
+                var isReady = await AgentProcess.EnsureAgentReadyAsync(CancellationToken.None, startIfNeeded: false);
+                if (!isReady)
+                {
+                    UpdateError("Configuration was saved, but the agent did not restart in time.");
+                    return;
+                }
             }
 
             if (enforceAfterSave)

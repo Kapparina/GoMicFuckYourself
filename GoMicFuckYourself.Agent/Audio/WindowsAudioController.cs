@@ -8,6 +8,8 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
 {
     private static readonly DeviceState AllDeviceStates =
         DeviceState.Active | DeviceState.Disabled | DeviceState.NotPresent | DeviceState.Unplugged;
+    private static readonly DeviceState ObservableDeviceStates =
+        DeviceState.Active;
 
     private readonly MMDeviceEnumerator _enumerator;
     private readonly Lock _sync = new();
@@ -92,7 +94,7 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
 
             foreach (var pair in _observedDevices)
             {
-                pair.Value.AudioEndpointVolume.OnVolumeNotification -= _volumeHandlers[pair.Key];
+                TryUnsubscribeVolumeNotification(pair.Value, _volumeHandlers[pair.Key]);
                 pair.Value.Dispose();
             }
 
@@ -193,7 +195,14 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
         for (var index = 0; index < collection.Count; index++)
         {
             using var device = collection[index];
-            devices.Add(CreateCaptureDeviceInfo(device, defaultDeviceId, defaultCommunicationsId));
+            try
+            {
+                devices.Add(CreateCaptureDeviceInfo(device, defaultDeviceId, defaultCommunicationsId));
+            }
+            catch
+            {
+                devices.Add(CreateFallbackCaptureDeviceInfo(device, defaultDeviceId, defaultCommunicationsId));
+            }
         }
 
         return devices;
@@ -203,15 +212,28 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
     {
         defaultDeviceId ??= TryGetDefaultCaptureDevice(AudioPolicyRole.Multimedia)?.ID;
         defaultCommunicationsId ??= TryGetDefaultCaptureDevice(AudioPolicyRole.Communications)?.ID;
+        var (volumePercent, isMuted) = TryReadVolume(device);
 
         return new CaptureDeviceInfo(
             device.ID,
-            device.FriendlyName,
+            TryGetFriendlyName(device),
             MapDeviceState(device.State),
             string.Equals(device.ID, defaultDeviceId, StringComparison.OrdinalIgnoreCase),
             string.Equals(device.ID, defaultCommunicationsId, StringComparison.OrdinalIgnoreCase),
-            device.AudioEndpointVolume.MasterVolumeLevelScalar * 100f,
-            device.AudioEndpointVolume.Mute);
+            volumePercent,
+            isMuted);
+    }
+
+    private CaptureDeviceInfo CreateFallbackCaptureDeviceInfo(MMDevice device, string? defaultDeviceId, string? defaultCommunicationsId)
+    {
+        return new CaptureDeviceInfo(
+            device.ID,
+            TryGetFriendlyName(device),
+            TryGetDeviceAvailability(device),
+            string.Equals(device.ID, defaultDeviceId, StringComparison.OrdinalIgnoreCase),
+            string.Equals(device.ID, defaultCommunicationsId, StringComparison.OrdinalIgnoreCase),
+            0f,
+            false);
     }
 
     private MMDevice? TryGetDefaultCaptureDevice(AudioPolicyRole role)
@@ -241,7 +263,7 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
     private void RefreshVolumeSubscriptions()
     {
         var activeIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var collection = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, AllDeviceStates);
+        var collection = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, ObservableDeviceStates);
 
         for (var index = 0; index < collection.Count; index++)
         {
@@ -253,23 +275,84 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
                 continue;
             }
 
-            var observedDevice = _enumerator.GetDevice(device.ID);
-            AudioEndpointVolumeNotificationDelegate handler = data => OnVolumeNotification(observedDevice.ID, data);
-            observedDevice.AudioEndpointVolume.OnVolumeNotification += handler;
-
-            _observedDevices.Add(observedDevice.ID, observedDevice);
-            _volumeHandlers.Add(observedDevice.ID, handler);
+            TryAddObservedDevice(device.ID);
         }
 
         var removedIds = _observedDevices.Keys.Where(id => !activeIds.Contains(id)).ToArray();
         foreach (var removedId in removedIds)
         {
             var observedDevice = _observedDevices[removedId];
-            observedDevice.AudioEndpointVolume.OnVolumeNotification -= _volumeHandlers[removedId];
+            TryUnsubscribeVolumeNotification(observedDevice, _volumeHandlers[removedId]);
             observedDevice.Dispose();
 
             _observedDevices.Remove(removedId);
             _volumeHandlers.Remove(removedId);
+        }
+    }
+
+    private void TryAddObservedDevice(string deviceId)
+    {
+        try
+        {
+            var observedDevice = _enumerator.GetDevice(deviceId);
+            var endpointVolume = observedDevice.AudioEndpointVolume;
+            AudioEndpointVolumeNotificationDelegate handler = data => OnVolumeNotification(observedDevice.ID, data);
+            endpointVolume.OnVolumeNotification += handler;
+
+            _observedDevices.Add(observedDevice.ID, observedDevice);
+            _volumeHandlers.Add(observedDevice.ID, handler);
+        }
+        catch
+        {
+        }
+    }
+
+    private static (float VolumePercent, bool IsMuted) TryReadVolume(MMDevice device)
+    {
+        try
+        {
+            return (device.AudioEndpointVolume.MasterVolumeLevelScalar * 100f, device.AudioEndpointVolume.Mute);
+        }
+        catch
+        {
+            return (0f, false);
+        }
+    }
+
+    private static string TryGetFriendlyName(MMDevice device)
+    {
+        try
+        {
+            return string.IsNullOrWhiteSpace(device.FriendlyName)
+                ? $"Capture device {device.ID}"
+                : device.FriendlyName;
+        }
+        catch
+        {
+            return $"Capture device {device.ID}";
+        }
+    }
+
+    private static DeviceAvailability TryGetDeviceAvailability(MMDevice device)
+    {
+        try
+        {
+            return MapDeviceState(device.State);
+        }
+        catch
+        {
+            return DeviceAvailability.Unknown;
+        }
+    }
+
+    private static void TryUnsubscribeVolumeNotification(MMDevice device, AudioEndpointVolumeNotificationDelegate handler)
+    {
+        try
+        {
+            device.AudioEndpointVolume.OnVolumeNotification -= handler;
+        }
+        catch
+        {
         }
     }
 

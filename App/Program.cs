@@ -5,7 +5,8 @@ static class Program
     [STAThread]
     static void Main(string[] args)
     {
-        var firstRun = args.Any(arg => string.Equals(arg, "--first-run", StringComparison.OrdinalIgnoreCase));
+        var firstRunRequested = args.Any(arg => string.Equals(arg, "--first-run", StringComparison.OrdinalIgnoreCase));
+        var firstRun = firstRunRequested || SetupStateDetector.IsSetupPending();
 
         ApplicationConfiguration.Initialize();
 
@@ -25,7 +26,6 @@ static class Program
             }
 
             using var _ = firstRunMutex;
-            AgentProcess.TryStartInstalledAgent();
             using var firstRunPipeClient = new AgentPipeClient();
             Application.Run(new MainForm(firstRunPipeClient, firstRun: true));
             return;

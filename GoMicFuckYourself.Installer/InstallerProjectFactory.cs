@@ -20,7 +20,8 @@ internal static class InstallerProjectFactory
             new Dir(
                 new Id("PROGRAMDATADIR"),
                 InstallerConstants.ProgramDataRoot,
-                new File(payload.DefaultConfigPath)));
+                new File(payload.DefaultConfigPath)),
+            new LaunchApplicationFromExitDialog("TRAY_EXE", InstallerConstants.LaunchOnExitCheckboxText));
 
         project.GUID = new Guid(InstallerConstants.UpgradeCode);
         project.Version = new Version(InstallerConstants.Version);
@@ -38,21 +39,6 @@ internal static class InstallerProjectFactory
         project.Description = InstallerConstants.ProductDescription;
         project.ControlPanelInfo.ProductIcon = payload.TrayExecutablePath;
         project.MajorUpgradeStrategy = MajorUpgradeStrategy.Default;
-        project.Properties =
-        [
-            new Property(InstallerConstants.LaunchOnExitCheckboxProperty, "0"),
-            new Property("WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT", InstallerConstants.LaunchOnExitCheckboxText)
-        ];
-        project.Actions =
-        [
-            new InstalledFileAction(
-                "TRAY_EXE",
-                "--first-run",
-                Return.asyncNoWait,
-                When.After,
-                Step.InstallFinalize,
-                Condition.NOT_Installed + " AND " + InstallerConstants.LaunchOnExitCheckboxProperty + " = 1")
-        ];
 
         return project;
     }
