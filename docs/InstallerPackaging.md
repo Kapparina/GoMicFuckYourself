@@ -43,7 +43,7 @@ The MSI installs:
 
 - agent files to `%ProgramFiles%\GoMicFuckYourself\Agent\`
 - tray files to `%ProgramFiles%\GoMicFuckYourself\Tray\`
-- default config to `%ProgramData%\GoMicFuckYourself\service-config.json`
+- default config to `%ProgramData%\GoMicFuckYourself\agent-config.json`
 
 It also:
 

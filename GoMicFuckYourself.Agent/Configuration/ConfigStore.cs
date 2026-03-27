@@ -21,7 +21,7 @@ public sealed class ConfigStore : IConfigStore
         _logger = logger;
 
         var programDataPath = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
-        _configPath = Path.Combine(programDataPath, "GoMicFuckYourself", "service-config.json");
+        _configPath = Path.Combine(programDataPath, "GoMicFuckYourself", "agent-config.json");
     }
 
     public Task<ServiceConfig> LoadAsync(CancellationToken cancellationToken)
@@ -43,7 +43,7 @@ public sealed class ConfigStore : IConfigStore
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Failed to load service config from {ConfigPath}. Falling back to defaults.", _configPath);
+                _logger.LogError(exception, "Failed to load agent config from {ConfigPath}. Falling back to defaults.", _configPath);
                 return Task.FromResult(new ServiceConfig());
             }
         }

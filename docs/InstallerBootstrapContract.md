@@ -55,9 +55,9 @@ Shared machine config root:
 
 - `%ProgramData%\GoMicFuckYourself\`
 
-Service config file:
+Agent config file:
 
-- `%ProgramData%\GoMicFuckYourself\service-config.json`
+- `%ProgramData%\GoMicFuckYourself\agent-config.json`
 
 Optional logs directory:
 
@@ -145,7 +145,7 @@ The tray app must not write `%ProgramData%` directly or call audio APIs directly
 
 At runtime the agent must:
 
-1. load `service-config.json`
+1. load `agent-config.json`
 2. start named pipe server
 3. initialize audio watchers
 4. enforce config immediately if a device is selected

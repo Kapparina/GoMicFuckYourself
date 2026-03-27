@@ -18,7 +18,7 @@ internal sealed class PayloadLayout
 
         var agentPayloadRoot = Path.Combine(payloadRoot, "Agent");
         var trayPayloadRoot = Path.Combine(payloadRoot, "Tray");
-        var defaultConfigPath = Path.Combine(outputRoot, "Assets", "service-config.json");
+        var defaultConfigPath = Path.Combine(outputRoot, "Assets", "agent-config.json");
 
         var agentExecutablePath = Path.Combine(agentPayloadRoot, "GoMicFuckYourself.Agent.exe");
         var trayExecutablePath = Path.Combine(trayPayloadRoot, "GoMicFuckYourself.Tray.exe");
