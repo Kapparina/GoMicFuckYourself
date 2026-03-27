@@ -158,7 +158,7 @@ partial class MainForm
         statusLabel.Name = "statusLabel";
         statusLabel.Size = new Size(520, 42);
         statusLabel.TabIndex = 9;
-        statusLabel.Text = "Loading service state...";
+        statusLabel.Text = "Loading agent state...";
         errorLabel.ForeColor = Color.Firebrick;
         errorLabel.Location = new Point(24, 340);
         errorLabel.Name = "errorLabel";

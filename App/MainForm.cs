@@ -6,11 +6,11 @@ namespace GoMicFuckYourself.Tray;
 
 public partial class MainForm : Form
 {
-    private readonly IServicePipeClient _pipeClient;
+    private readonly IAgentPipeClient _pipeClient;
     private readonly bool _firstRun;
     private bool _allowExit;
 
-    public MainForm(IServicePipeClient pipeClient, bool firstRun)
+    public MainForm(IAgentPipeClient pipeClient, bool firstRun)
     {
         _pipeClient = pipeClient;
         _firstRun = firstRun;
@@ -79,7 +79,7 @@ public partial class MainForm : Form
 
             if (!statusResponse.Success)
             {
-                statusLabel.Text = statusResponse.Error ?? "Failed to load service status.";
+                statusLabel.Text = statusResponse.Error ?? "Failed to load agent status.";
             }
             else if (statusResponse.Payload is { } status)
             {
@@ -148,6 +148,12 @@ public partial class MainForm : Form
                 return;
             }
 
+            if (_firstRun)
+            {
+                AutorunRegistry.EnableForCurrentUser();
+                ProcessCoordinator.RestartAgent();
+            }
+
             if (enforceAfterSave)
             {
                 var enforceResponse = await _pipeClient.ForceEnforceAsync();
@@ -159,9 +165,11 @@ public partial class MainForm : Form
             }
 
             errorLabel.Text = string.Empty;
-            statusLabel.Text = enforceAfterSave
-                ? "Configuration saved and enforcement triggered."
-                : "Configuration saved.";
+            statusLabel.Text = _firstRun
+                ? "Configuration saved. Autorun was enabled and the agent was restarted."
+                : enforceAfterSave
+                    ? "Configuration saved and enforcement triggered."
+                    : "Configuration saved.";
         });
     }
 

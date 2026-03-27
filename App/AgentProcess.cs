@@ -26,7 +26,7 @@ internal static class AgentProcess
         }
     }
 
-    private static string? ResolveInstalledAgentPath()
+    public static string? ResolveInstalledAgentPath()
     {
         var trayDirectory = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         var installRoot = Directory.GetParent(trayDirectory)?.FullName;
