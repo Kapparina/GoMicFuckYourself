@@ -4,7 +4,7 @@
 
 This document defines the installation and first-run contract for:
 
-- `GoMicFuckYourself.Service`
+- `GoMicFuckYourself.Agent`
 - `GoMicFuckYourself.Tray`
 - the future installer/bootstrapper
 
@@ -12,39 +12,38 @@ The goal is to make initial setup deterministic and keep runtime behavior simple
 
 ## Install Targets
 
-### Service
+### Agent
 
-- Service name: `GoMicFuckYourself.Service`
-- Display name: `GoMicFuckYourself Service`
-- Startup type: `Automatic`
-- Recovery: restart on first, second, and subsequent failure
-- Account: `LocalSystem`
+- Installed as a regular executable under `%ProgramFiles%`
+- Started at user logon via `HKLM\Software\Microsoft\Windows\CurrentVersion\Run`
+- Runs in the interactive user session
+- Owns all Core Audio and enforcement logic
 
 Rationale:
 
-- audio endpoint policy and device enforcement are machine-level concerns
-- `LocalSystem` avoids permission issues with `%ProgramData%` and service startup
-- the tray app remains unprivileged and talks to the service over named pipes
+- Core Audio enforcement must run in the interactive user session
+- the agent can access endpoint notifications and volume control reliably
+- the tray app remains UI-only and talks to the agent over named pipes
 
 ### Tray
 
-- Installed separately from the service binaries
-- Started at user logon via `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
-- Command line on first launch after install: `GoMicFuckYourself.Tray.exe --first-run`
+- Installed separately from the agent binaries
+- Started at user logon via `HKLM\Software\Microsoft\Windows\CurrentVersion\Run`
+- May be launched manually with `GoMicFuckYourself.Tray.exe --first-run` during setup and testing
 
 Rationale:
 
 - the tray app is per-user UI
-- the service is machine-wide enforcement
-- using `HKCU\Run` avoids forcing a machine-wide interactive startup model
+- the agent is per-user enforcement
+- machine-wide autorun keeps both pieces available after install
 
 ## Filesystem Layout
 
 ### Program Files
 
-Service binaries:
+Agent binaries:
 
-- `%ProgramFiles%\GoMicFuckYourself\Service\`
+- `%ProgramFiles%\GoMicFuckYourself\Agent\`
 
 Tray binaries:
 
@@ -72,7 +71,7 @@ Installer requirements:
 
 ## Config Schema
 
-The installer and service must both treat this file as the canonical initial config.
+The installer and agent must both treat this file as the canonical initial config.
 
 ```json
 {
@@ -92,19 +91,19 @@ Rules:
   - installer default is `100`
 - `enforcementEnabled`
   - installer default is `true`
-  - if `false`, the service stays alive but does not force changes
+  - if `false`, the agent stays alive but does not force changes
 
 Runtime rules:
 
-- the service must tolerate a missing file by treating it as default config
-- the service must tolerate invalid JSON by falling back to default config and logging an error
+- the agent must tolerate a missing file by treating it as default config
+- the agent must tolerate invalid JSON by falling back to default config and logging an error
 - the installer must not overwrite a non-empty existing config during upgrade
 
 ## Named Pipe Contract
 
 Pipe name:
 
-- `GoMicFuckYourself.Service`
+- `GoMicFuckYourself.Agent`
 
 Transport:
 
@@ -114,20 +113,20 @@ Transport:
 Installer usage:
 
 - the installer does not call audio APIs directly
-- the installer may verify service health through the pipe
+- the installer may verify agent health through the pipe
 - the tray app is responsible for device selection UI and `SaveConfig`
 
 ## First-Run Flow
 
 ### Fresh Install
 
-1. Install service binaries.
+1. Install agent binaries.
 2. Install tray binaries.
 3. Create `%ProgramData%\GoMicFuckYourself\`.
 4. Create default `service-config.json` if missing.
-5. Register and start `GoMicFuckYourself.Service`.
-6. Register tray autorun for the installing user.
-7. Launch `GoMicFuckYourself.Tray.exe --first-run`.
+5. Register machine-wide agent autorun.
+6. Register machine-wide tray autorun.
+7. Optionally launch `GoMicFuckYourself.Tray.exe --first-run`.
 
 ### First-Run Tray Behavior
 
@@ -138,13 +137,13 @@ When launched with `--first-run`, the tray app should:
 3. prompt the user to select a microphone and volume
 4. call `SaveConfig`
 5. call `ForceEnforce`
-6. display success or failure status from the service
+6. display success or failure status from the agent
 
-The tray app must not write `%ProgramData%` directly.
+The tray app must not write `%ProgramData%` directly or call audio APIs directly.
 
-## Service Startup Requirements
+## Agent Startup Requirements
 
-At runtime the service must:
+At runtime the agent must:
 
 1. load `service-config.json`
 2. start named pipe server
@@ -152,39 +151,39 @@ At runtime the service must:
 4. enforce config immediately if a device is selected
 5. continue running even if no device is configured
 
-If `selectedCaptureDeviceId` is `null`, the service status should report:
+If `selectedCaptureDeviceId` is `null`, the agent status should report:
 
-- service healthy
+- agent healthy
 - no selected device
 - enforcement idle
 
-This avoids turning first boot into a service failure state.
+This avoids turning first boot into an agent failure state.
 
 ## Installer Verification
 
 After installation, the installer should verify:
 
-1. service registration exists
-2. service status is `Running`
+1. agent binaries exist under `%ProgramFiles%\GoMicFuckYourself\Agent\`
+2. tray binaries exist under `%ProgramFiles%\GoMicFuckYourself\Tray\`
 3. `%ProgramData%\GoMicFuckYourself\service-config.json` exists
 4. named pipe responds to `GetStatus`
 
-If service startup fails, the installer should show:
+If agent startup fails, the installer or troubleshooting flow should show:
 
-- Windows service status
-- last known error if available
+- whether `GoMicFuckYourself.Agent.exe` is running in the user session
+- last known pipe or startup error if available
 - path to the config file
 
 ## Upgrade Rules
 
 - preserve `%ProgramData%\GoMicFuckYourself\service-config.json`
-- restart the service after binary replacement
+- refresh the agent and tray autorun entries after binary replacement
 - do not auto-launch first-run UI during upgrade if a selected device already exists
 - re-register tray autorun only if the tray app is installed
 
 ## Uninstall Rules
 
-- stop and remove the service
+- remove the agent autorun entry
 - remove tray autorun entry
 - remove binaries from `%ProgramFiles%\GoMicFuckYourself\`
 - leave `%ProgramData%\GoMicFuckYourself\service-config.json` in place by default
@@ -197,15 +196,15 @@ Rationale:
 ## Security Notes
 
 - named pipe access should default to local users, with write operations authorized by local machine context
-- the tray app should be treated as untrusted input to the service
-- all service-side config writes must validate device ID and volume range
+- the tray app should be treated as untrusted input to the agent
+- all agent-side config writes must validate device ID and volume range
 
 ## Implementation Implications
 
 This contract drives the next code tasks:
 
-1. add `ServiceConfig` and `ConfigStore` targeting `%ProgramData%\GoMicFuckYourself\service-config.json`
-2. add `MicPolicyEngine` startup enforcement and periodic fallback enforcement
-3. add pipe handlers for `GetStatus`, `GetConfig`, `SaveConfig`, `ListCaptureDevices`, and `ForceEnforce`
-4. add tray `--first-run` bootstrap flow
-5. add installer project or packaging definition implementing the steps above
+1. keep `ServiceConfig` and `ConfigStore` targeting `%ProgramData%\GoMicFuckYourself\service-config.json`
+2. keep `MicPolicyEngine` startup enforcement and periodic fallback enforcement in the agent
+3. keep pipe handlers for `GetStatus`, `GetConfig`, `SaveConfig`, `ListCaptureDevices`, and `ForceEnforce`
+4. keep tray `--first-run` bootstrap flow
+5. keep installer packaging aligned to the agent-based startup model

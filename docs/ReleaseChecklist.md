@@ -16,11 +16,11 @@
 2. Record the emitted SHA256 hash.
 3. Test install on a clean machine or VM.
 4. Verify:
-   - service installs and starts
+   - agent launches in the user session after logon
    - tray app launches
    - first-run setup can save config
    - microphone enforcement works
-   - uninstall removes binaries and service cleanly
+   - uninstall removes binaries and autorun entries cleanly
 
 ## Publish
 
@@ -33,4 +33,4 @@
 - Version: `0.1.0`
 - Product code: `{7e383a7a-9580-48a6-818e-b173fef990c8}`
 - Upgrade code: `{7e383a7a-9580-48a6-818e-b173fee980c8}`
-- Last built SHA256: `46399A2B7815DDEBCDEFF750FC9C7BE69EDBBAF512E9B17FAD85C1B7E5C02E82`
+- Last built SHA256: `167825608EBA08E9B152A0135B48C3C60B27A9B29DD8FD317FAB7479D3B3C758`

@@ -7,7 +7,7 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $artifacts = Join-Path $root "artifacts"
 $payloadRoot = Join-Path $artifacts "payload"
-$servicePublish = Join-Path $payloadRoot "Service"
+$agentPublish = Join-Path $payloadRoot "Agent"
 $trayPublish = Join-Path $payloadRoot "Tray"
 $msiOutput = Join-Path $root "GoMicFuckYourself.Installer\bin\$Configuration\net48\msi"
 
@@ -15,12 +15,12 @@ if (-not (Get-Command wix.exe -ErrorAction SilentlyContinue)) {
     throw "wix.exe cannot be found. Install WiX with: dotnet tool install --global wix"
 }
 
-New-Item -ItemType Directory -Force -Path $servicePublish | Out-Null
+New-Item -ItemType Directory -Force -Path $agentPublish | Out-Null
 New-Item -ItemType Directory -Force -Path $trayPublish | Out-Null
 
-dotnet publish (Join-Path $root "GoMicFuckYourself.Service\GoMicFuckYourself.Service.csproj") `
+dotnet publish (Join-Path $root "GoMicFuckYourself.Agent\GoMicFuckYourself.Agent.csproj") `
     -c $Configuration `
-    -o $servicePublish
+    -o $agentPublish
 
 dotnet publish (Join-Path $root "App\App.csproj") `
     -c $Configuration `

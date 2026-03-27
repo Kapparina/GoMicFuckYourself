@@ -23,8 +23,8 @@ The installer project expects published binaries next to the installer output or
 
 ```text
 payload/
-  Service/
-    GoMicFuckYourself.Service.exe
+  Agent/
+    GoMicFuckYourself.Agent.exe
     ...
   Tray/
     GoMicFuckYourself.Tray.exe
@@ -41,15 +41,13 @@ dotnet run --project .\GoMicFuckYourself.Installer -- --payload-root F:\artifact
 
 The MSI installs:
 
-- service files to `%ProgramFiles%\GoMicFuckYourself\Service\`
+- agent files to `%ProgramFiles%\GoMicFuckYourself\Agent\`
 - tray files to `%ProgramFiles%\GoMicFuckYourself\Tray\`
 - default config to `%ProgramData%\GoMicFuckYourself\service-config.json`
 
 It also:
 
-- registers `GoMicFuckYourself.Service` as a Windows Service
-- starts the service on install
-- removes the service on uninstall
+- creates a machine-wide agent autorun entry in `HKLM\Software\Microsoft\Windows\CurrentVersion\Run`
 - creates a machine-wide tray autorun entry in `HKLM\Software\Microsoft\Windows\CurrentVersion\Run`
 
 ## Winget And Scoop
