@@ -47,8 +47,8 @@ The MSI installs:
 
 It also:
 
-- creates a machine-wide agent autorun entry in `HKLM\Software\Microsoft\Windows\CurrentVersion\Run`
-- creates a machine-wide tray autorun entry in `HKLM\Software\Microsoft\Windows\CurrentVersion\Run`
+- optionally launches the tray in `--first-run` mode from the installer finish page
+- defers tray and agent autorun registration until first-run setup completes
 
 ## Winget And Scoop
 
