@@ -8,6 +8,7 @@ internal static class InstallerProjectFactory
     public static ManagedProject Create(PayloadLayout payload)
     {
         var agentFile = new File(new Id("AGENT_EXE"), payload.AgentExecutablePath);
+        var trayFile = new File(new Id("TRAY_EXE"), payload.TrayExecutablePath);
 
         var project = new ManagedProject(
             InstallerConstants.ProductName,
@@ -15,21 +16,11 @@ internal static class InstallerProjectFactory
                 new Id("INSTALLDIR"),
                 InstallerConstants.InstallRoot,
                 new Dir("Agent", BuildPayloadDirectory(payload.AgentPayloadRoot, agentFile)),
-                new Dir("Tray", BuildPayloadDirectory(payload.TrayPayloadRoot))),
+                new Dir("Tray", BuildPayloadDirectory(payload.TrayPayloadRoot, trayFile))),
             new Dir(
                 new Id("PROGRAMDATADIR"),
                 InstallerConstants.ProgramDataRoot,
-                new File(payload.DefaultConfigPath)),
-            new RegValue(
-                WixSharp.RegistryHive.LocalMachine,
-                @"Software\Microsoft\Windows\CurrentVersion\Run",
-                InstallerConstants.AgentAutorunName,
-                "[INSTALLDIR]Agent\\GoMicFuckYourself.Agent.exe"),
-            new RegValue(
-                WixSharp.RegistryHive.LocalMachine,
-                @"Software\Microsoft\Windows\CurrentVersion\Run",
-                InstallerConstants.TrayAutorunName,
-                "[INSTALLDIR]Tray\\GoMicFuckYourself.Tray.exe"));
+                new File(payload.DefaultConfigPath)));
 
         project.GUID = new Guid(InstallerConstants.UpgradeCode);
         project.Version = new Version(InstallerConstants.Version);
@@ -47,6 +38,21 @@ internal static class InstallerProjectFactory
         project.Description = InstallerConstants.ProductDescription;
         project.ControlPanelInfo.ProductIcon = payload.TrayExecutablePath;
         project.MajorUpgradeStrategy = MajorUpgradeStrategy.Default;
+        project.Properties =
+        [
+            new Property(InstallerConstants.LaunchOnExitCheckboxProperty, "0"),
+            new Property("WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT", InstallerConstants.LaunchOnExitCheckboxText)
+        ];
+        project.Actions =
+        [
+            new InstalledFileAction(
+                "TRAY_EXE",
+                "--first-run",
+                Return.asyncNoWait,
+                When.After,
+                Step.InstallFinalize,
+                Condition.NOT_Installed + " AND " + InstallerConstants.LaunchOnExitCheckboxProperty + " = 1")
+        ];
 
         return project;
     }
