@@ -1,6 +1,6 @@
 # Release Automation
 
-This repo includes a GitHub Actions workflow at `.github/workflows/release.yml` that builds the MSI installer and uploads it to a GitHub Release.
+This repo includes a GitHub Actions workflow at `.github/workflows/release.yml` that builds the MSI installer, builds the bootstrapper EXE, and uploads both to a GitHub Release.
 
 ## Requirements
 
@@ -54,13 +54,14 @@ When triggered by a tag, the workflow:
 1. checks out the repository with full history
 2. installs .NET 10
 3. installs WiX 6.0.2
-4. installs the required WiX extensions
+4. installs the required WiX extensions (`Bal`, `Netfx`, `UI`, and `Util`)
 5. runs `.\scripts\Build-Installer.ps1 -Configuration Release`
-6. finds the generated MSI
-7. uploads the MSI as a workflow artifact
-8. creates a GitHub Release for the tag
-9. attaches the MSI to the release
-10. generates release notes automatically from the tag diff and commit history
+6. downloads the configured .NET Desktop Runtime prerequisite during the build
+7. finds the generated MSI and bootstrapper EXE
+8. uploads both as workflow artifacts
+9. creates a GitHub Release for the tag
+10. attaches both the MSI and bootstrapper to the release
+11. generates release notes automatically from the tag diff and commit history
 
 ## Versioning
 
@@ -92,6 +93,7 @@ To override the version manually:
 The workflow publishes:
 
 - a GitHub Release named from the pushed tag
+- the bootstrapper EXE as a release asset
 - the MSI installer as a release asset
 - automatically generated release notes
 

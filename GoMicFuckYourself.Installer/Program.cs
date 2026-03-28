@@ -12,9 +12,26 @@ internal static class Program
             var version = ResolveVersion(args);
             var project = InstallerProjectFactory.Create(payload, version);
 
-            Compiler.BuildMsi(project);
+            var msiPath = Compiler.BuildMsi(project);
 
             Console.WriteLine($"MSI generated in '{project.OutDir}'.");
+
+            if (!string.IsNullOrWhiteSpace(payload.DotNetDesktopRuntimeInstallerPath))
+            {
+                var bundle = BootstrapperProjectFactory.Create(
+                    msiPath,
+                    payload.DotNetDesktopRuntimeInstallerPath!,
+                    version);
+
+                var bundlePath = Compiler.Build(bundle);
+                if (string.IsNullOrWhiteSpace(bundlePath) || !System.IO.File.Exists(bundlePath))
+                {
+                    throw new InvalidOperationException("Bootstrapper generation failed.");
+                }
+
+                Console.WriteLine($"Bootstrapper generated at '{bundlePath}'.");
+            }
+
             return 0;
         }
         catch (Exception exception)

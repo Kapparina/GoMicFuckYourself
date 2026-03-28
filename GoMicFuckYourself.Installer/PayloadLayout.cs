@@ -9,6 +9,7 @@ internal sealed class PayloadLayout
     public string AgentExecutablePath { get; set; } = string.Empty;
     public string TrayExecutablePath { get; set; } = string.Empty;
     public string DefaultConfigPath { get; set; } = string.Empty;
+    public string? DotNetDesktopRuntimeInstallerPath { get; set; }
 
     public static PayloadLayout Resolve(string[] args)
     {
@@ -19,6 +20,7 @@ internal sealed class PayloadLayout
         var agentPayloadRoot = Path.Combine(payloadRoot, "Agent");
         var trayPayloadRoot = Path.Combine(payloadRoot, "Tray");
         var defaultConfigPath = Path.Combine(outputRoot, "Assets", "agent-config.json");
+        var dotNetDesktopRuntimeInstallerPath = GetOption(args, "--dotnet-runtime-installer");
 
         var agentExecutablePath = Path.Combine(agentPayloadRoot, "GoMicFuckYourself.Agent.exe");
         var trayExecutablePath = Path.Combine(trayPayloadRoot, "GoMicFuckYourself.Tray.exe");
@@ -29,6 +31,11 @@ internal sealed class PayloadLayout
         EnsureFileExists(trayExecutablePath, "tray executable");
         EnsureFileExists(defaultConfigPath, "default config asset");
 
+        if (!string.IsNullOrWhiteSpace(dotNetDesktopRuntimeInstallerPath))
+        {
+            EnsureFileExists(dotNetDesktopRuntimeInstallerPath!, ".NET Desktop Runtime installer");
+        }
+
         return new PayloadLayout
         {
             OutputRoot = outputRoot,
@@ -37,7 +44,8 @@ internal sealed class PayloadLayout
             TrayPayloadRoot = trayPayloadRoot,
             AgentExecutablePath = agentExecutablePath,
             TrayExecutablePath = trayExecutablePath,
-            DefaultConfigPath = defaultConfigPath
+            DefaultConfigPath = defaultConfigPath,
+            DotNetDesktopRuntimeInstallerPath = dotNetDesktopRuntimeInstallerPath
         };
     }
 

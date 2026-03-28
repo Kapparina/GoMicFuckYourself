@@ -12,13 +12,19 @@ If Windows or another app changes those settings, GoMicFuckYourself changes them
 
 ## Download
 
-Download the latest `.msi` installer from the [Releases](https://github.com/Kapparina/GoMicFuckYourself/releases) page.
+Download the latest bootstrapper `.exe` from the [Releases](https://github.com/Kapparina/GoMicFuckYourself/releases) page.
+
+The bootstrapper installs the required .NET Desktop Runtime first if it is missing, then installs GoMicFuckYourself.
 
 ## Install
 
-1. Run the installer.
+1. Run the bootstrapper `.exe`.
 2. Follow the setup wizard.
 3. On the last screen, optionally check the box to launch the app immediately.
+
+Advanced:
+
+- a raw `.msi` is also published for machines that already have the required .NET Desktop Runtime installed
 
 ## First-Time Setup
 
@@ -66,8 +72,8 @@ If enforcement seems stuck:
 
 If the app is not visible:
 
-- check the system tray
-- launch `GoMicFuckYourself` from the Start menu
+- Check the system tray
+- Launch `GoMicFuckYourself` from the Start menu
 
 ## Developer Docs
 

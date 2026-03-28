@@ -4,6 +4,11 @@
 
 The installer is built with `WixSharp` on top of WiX v4.
 
+The release output now has two layers:
+
+- an MSI containing the application payload
+- a Burn bootstrapper EXE that installs the .NET Desktop Runtime prerequisite and then launches the MSI
+
 Project:
 
 - `GoMicFuckYourself.Installer`
@@ -16,6 +21,10 @@ NuGet package:
 WiX tool prerequisite:
 
 - `dotnet tool install --global wix`
+- `wix extension add -g WixToolset.Bal.wixext/6.0.2`
+- `wix extension add -g WixToolset.Netfx.wixext/6.0.2`
+- `wix extension add -g WixToolset.UI.wixext/6.0.2`
+- `wix extension add -g WixToolset.Util.wixext/6.0.2`
 
 ## Payload Layout
 
@@ -49,6 +58,18 @@ It also:
 
 - optionally launches the tray in `--first-run` mode from the installer finish page
 - defers tray and agent autorun registration until first-run setup completes
+
+## Bootstrapper Prerequisite
+
+The bootstrapper includes a `.NET Desktop Runtime` prerequisite for `x64` machines.
+
+Current configured prerequisite:
+
+- runtime family: `.NET Desktop Runtime`
+- architecture: `x64`
+- version: `10.0.3`
+
+The build script downloads the runtime installer from Microsoft's official distribution point before generating the bootstrapper.
 
 ## Winget And Scoop
 
