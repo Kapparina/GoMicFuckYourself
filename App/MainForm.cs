@@ -275,10 +275,26 @@ public partial class MainForm : Form
 
     private void HookDirtyTracking()
     {
-        devicesComboBox.SelectedIndexChanged += (_, _) => MarkDirtyFromUserInput();
+        devicesComboBox.SelectedIndexChanged += (_, _) => HandleSelectedDeviceChanged();
         volumeNumericUpDown.ValueChanged += (_, _) => MarkDirtyFromUserInput();
         volumeNumericUpDown.TextChanged += (_, _) => MarkDirtyFromUserInput();
         enforcementEnabledCheckBox.CheckedChanged += (_, _) => MarkDirtyFromUserInput();
+    }
+
+    private void HandleSelectedDeviceChanged()
+    {
+        if (_isLoadingState)
+        {
+            return;
+        }
+
+        if (devicesComboBox.SelectedItem is CaptureDeviceInfo selectedDevice)
+        {
+            var clampedVolume = Math.Clamp(selectedDevice.VolumePercent, 0f, 100f);
+            volumeNumericUpDown.Value = Convert.ToDecimal(clampedVolume);
+        }
+
+        SetDirty(true);
     }
 
     private void MarkDirtyFromUserInput()
