@@ -39,6 +39,7 @@ internal static class InstallerProjectFactory
         project.Description = InstallerConstants.ProductDescription;
         project.ControlPanelInfo.ProductIcon = payload.TrayExecutablePath;
         project.MajorUpgradeStrategy = MajorUpgradeStrategy.Default;
+        project.LicenceFile = Path.Combine(AppContext.BaseDirectory, "Assets", "License.rtf");
 
         return project;
     }
