@@ -9,7 +9,8 @@ internal static class Program
         try
         {
             var payload = PayloadLayout.Resolve(args);
-            var project = InstallerProjectFactory.Create(payload);
+            var version = ResolveVersion(args);
+            var project = InstallerProjectFactory.Create(payload, version);
 
             Compiler.BuildMsi(project);
 
@@ -21,5 +22,22 @@ internal static class Program
             Console.Error.WriteLine(exception.Message);
             return 1;
         }
+    }
+
+    private static string ResolveVersion(IReadOnlyList<string> args)
+    {
+        for (var index = 0; index < args.Count - 1; index++)
+        {
+            if (string.Equals(args[index], "--version", StringComparison.OrdinalIgnoreCase))
+            {
+                var version = args[index + 1];
+                if (!string.IsNullOrWhiteSpace(version))
+                {
+                    return version.Trim();
+                }
+            }
+        }
+
+        return InstallerConstants.DefaultVersion;
     }
 }

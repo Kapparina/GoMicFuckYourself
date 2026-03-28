@@ -5,7 +5,7 @@ namespace GoMicFuckYourself.Installer;
 
 internal static class InstallerProjectFactory
 {
-    public static ManagedProject Create(PayloadLayout payload)
+    public static ManagedProject Create(PayloadLayout payload, string version)
     {
         var agentFile = new File(new Id("AGENT_EXE"), payload.AgentExecutablePath);
         var trayFile = new File(new Id("TRAY_EXE"), payload.TrayExecutablePath);
@@ -26,12 +26,13 @@ internal static class InstallerProjectFactory
             new Dir(
                 new Id("PROGRAMDATADIR"),
                 InstallerConstants.ProgramDataRoot,
+                new DirPermission("Users", GenericPermission.Read | GenericPermission.Write),
                 new File(payload.DefaultConfigPath)),
             new LaunchApplicationFromExitDialog("TRAY_EXE", InstallerConstants.LaunchOnExitCheckboxText));
 
         project.GUID = new Guid(InstallerConstants.UpgradeCode);
-        project.Version = new Version(InstallerConstants.Version);
-        project.OutFileName = $"{InstallerConstants.ProductName}-{InstallerConstants.Version}";
+        project.Version = new Version(version);
+        project.OutFileName = $"{InstallerConstants.ProductName}-{version}";
         project.OutDir = Path.Combine(payload.OutputRoot, "msi");
         project.Scope = InstallScope.perMachine;
         project.Platform = Platform.x64;

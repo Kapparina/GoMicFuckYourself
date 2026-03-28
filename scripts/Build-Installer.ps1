@@ -1,5 +1,6 @@
 param(
-    [string]$Configuration = "Release"
+    [string]$Configuration = "Release",
+    [string]$Version
 )
 
 $ErrorActionPreference = "Stop"
@@ -10,6 +11,22 @@ $payloadRoot = Join-Path $artifacts "payload"
 $agentPublish = Join-Path $payloadRoot "Agent"
 $trayPublish = Join-Path $payloadRoot "Tray"
 $msiOutput = Join-Path $root "GoMicFuckYourself.Installer\bin\$Configuration\net48\msi"
+
+if (-not $Version) {
+    $latestTag = ""
+    try {
+        $latestTag = (git -C $root describe --tags --abbrev=0 2>$null).Trim()
+    }
+    catch {
+    }
+
+    if ($latestTag) {
+        $Version = $latestTag.TrimStart('v', 'V')
+    }
+    else {
+        $Version = "0.1.0"
+    }
+}
 
 if (-not (Get-Command wix.exe -ErrorAction SilentlyContinue)) {
     throw "wix.exe cannot be found. Install WiX with: dotnet tool install --global wix"
@@ -27,11 +44,13 @@ dotnet publish (Join-Path $root "App\App.csproj") `
     -o $trayPublish
 
 dotnet run --project (Join-Path $root "GoMicFuckYourself.Installer\GoMicFuckYourself.Installer.csproj") -c $Configuration -- `
-    --payload-root $payloadRoot
+    --payload-root $payloadRoot `
+    --version $Version
 
 $msi = Get-ChildItem -Path $msiOutput -Filter *.msi | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
 if ($null -ne $msi) {
     $hash = (Get-FileHash -Path $msi.FullName -Algorithm SHA256).Hash
+    Write-Host "Version: $Version"
     Write-Host "MSI: $($msi.FullName)"
     Write-Host "SHA256: $hash"
 }
