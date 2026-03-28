@@ -5,12 +5,15 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$root = Split-Path -Parent $PSScriptRoot
+$root = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $artifacts = Join-Path $root "artifacts"
 $payloadRoot = Join-Path $artifacts "payload"
 $agentPublish = Join-Path $payloadRoot "Agent"
 $trayPublish = Join-Path $payloadRoot "Tray"
 $msiOutput = Join-Path $root "GoMicFuckYourself.Installer\bin\$Configuration\net48\msi"
+$agentProject = Join-Path $root "GoMicFuckYourself.Agent\GoMicFuckYourself.Agent.csproj"
+$trayProject = Join-Path $root "App\App.csproj"
+$installerProject = Join-Path $root "GoMicFuckYourself.Installer\GoMicFuckYourself.Installer.csproj"
 
 if (-not $Version) {
     $latestTag = ""
@@ -32,20 +35,32 @@ if (-not (Get-Command wix.exe -ErrorAction SilentlyContinue)) {
     throw "wix.exe cannot be found. Install WiX with: dotnet tool install --global wix"
 }
 
+foreach ($requiredPath in @($agentProject, $trayProject, $installerProject)) {
+    if (-not (Test-Path -LiteralPath $requiredPath)) {
+        throw "Required project file was not found: $requiredPath"
+    }
+}
+
 New-Item -ItemType Directory -Force -Path $agentPublish | Out-Null
 New-Item -ItemType Directory -Force -Path $trayPublish | Out-Null
 
-dotnet publish (Join-Path $root "GoMicFuckYourself.Agent\GoMicFuckYourself.Agent.csproj") `
+Push-Location $root
+try {
+    & dotnet publish $agentProject `
     -c $Configuration `
     -o $agentPublish
 
-dotnet publish (Join-Path $root "App\App.csproj") `
+    & dotnet publish $trayProject `
     -c $Configuration `
     -o $trayPublish
 
-dotnet run --project (Join-Path $root "GoMicFuckYourself.Installer\GoMicFuckYourself.Installer.csproj") -c $Configuration -- `
+    & dotnet run --project $installerProject -c $Configuration -- `
     --payload-root $payloadRoot `
     --version $Version
+}
+finally {
+    Pop-Location
+}
 
 $msi = Get-ChildItem -Path $msiOutput -Filter *.msi | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
 if ($null -ne $msi) {
