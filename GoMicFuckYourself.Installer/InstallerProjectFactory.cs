@@ -18,6 +18,12 @@ internal static class InstallerProjectFactory
                 new Dir("Agent", BuildPayloadDirectory(payload.AgentPayloadRoot, agentFile)),
                 new Dir("Tray", BuildPayloadDirectory(payload.TrayPayloadRoot, trayFile))),
             new Dir(
+                @"%ProgramMenu%\GoMicFuckYourself",
+                new ExeFileShortcut(InstallerConstants.ProductName, "[#TRAY_EXE]", "")
+                {
+                    WorkingDirectory = "INSTALLDIR"
+                }),
+            new Dir(
                 new Id("PROGRAMDATADIR"),
                 InstallerConstants.ProgramDataRoot,
                 new File(payload.DefaultConfigPath)),
