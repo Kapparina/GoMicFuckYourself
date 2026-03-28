@@ -34,6 +34,17 @@ jobs:
           wix extension add -g WixToolset.UI.wixext/6.0.2
           wix extension add -g WixToolset.Util.wixext/6.0.2
 
+      - name: Print checkout diagnostics
+        shell: pwsh
+        run: |
+          Write-Host "Git ref: $env:GITHUB_REF"
+          Write-Host "Git SHA: $env:GITHUB_SHA"
+          git rev-parse HEAD
+          Get-ChildItem -Name
+          Test-Path .\GoMicFuckYourself.Agent\GoMicFuckYourself.Agent.csproj
+          Test-Path .\App\App.csproj
+          Test-Path .\GoMicFuckYourself.Installer\GoMicFuckYourself.Installer.csproj
+
       - name: Build installer
         shell: pwsh
         run: .\scripts\Build-Installer.ps1 -Configuration Release

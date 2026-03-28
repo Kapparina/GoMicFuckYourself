@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net10.0-windows</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <UseWindowsForms>true</UseWindowsForms>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <AssemblyName>GoMicFuckYourself.Tray</AssemblyName>
+        <RootNamespace>GoMicFuckYourself.Tray</RootNamespace>
+        <AssemblyTitle>GoMicFuckYourself Tray</AssemblyTitle>
+        <Description>Tray application for configuring and monitoring microphone enforcement.</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\GoMicFuckYourself.Contracts\GoMicFuckYourself.Contracts.csproj" />
+    </ItemGroup>
+
+</Project>

@@ -42,9 +42,10 @@ fabric.properties
 .gradle/
 ExportedObj/
 .consulo/
-*.csproj
+# Keep actual .NET project files in source control.
+!*.csproj
 *.unityproj
-*.sln
+!*.sln
 *.suo
 *.tmp
 *.user

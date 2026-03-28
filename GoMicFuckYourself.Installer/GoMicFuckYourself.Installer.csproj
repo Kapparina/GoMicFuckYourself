@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyTitle>GoMicFuckYourself Installer</AssemblyTitle>
+    <Description>Builds the MSI installer for GoMicFuckYourself.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixSharp_wix4" Version="2.12.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Assets\agent-config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <GeneratedLicenseRtf>$(BaseIntermediateOutputPath)Generated\License.rtf</GeneratedLicenseRtf>
+  </PropertyGroup>
+
+  <Target Name="GenerateInstallerLicenseRtf" BeforeTargets="BeforeBuild">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\scripts\Generate-LicenseRtf.ps1&quot; -LicensePath &quot;$(MSBuildProjectDirectory)\..\LICENSE&quot; -OutputPath &quot;$(MSBuildProjectDirectory)\$(GeneratedLicenseRtf)&quot;" />
+  </Target>
+
+  <ItemGroup>
+    <None Include="$(GeneratedLicenseRtf)">
+      <Link>Assets\License.rtf</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
