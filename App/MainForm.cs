@@ -9,6 +9,7 @@ public partial class MainForm : Form
 {
     private readonly IAgentPipeClient _pipeClient;
     private readonly bool _firstRun;
+    private ServiceConfig? _loadedConfig;
     private bool _allowExit;
     private bool _isBusy;
     private bool _isDirty;
@@ -126,6 +127,7 @@ public partial class MainForm : Form
 
                 if (configResponse.Success && configResponse.Payload is { } config)
                 {
+                    _loadedConfig = config;
                     enforcementEnabledCheckBox.Checked = config.EnforcementEnabled;
                     volumeNumericUpDown.Value = Convert.ToDecimal(config.TargetVolumePercent ?? 100f);
 
@@ -133,6 +135,10 @@ public partial class MainForm : Form
                     {
                         devicesComboBox.SelectedValue = config.SelectedCaptureDeviceId;
                     }
+                }
+                else
+                {
+                    _loadedConfig = new ServiceConfig();
                 }
 
                 if (devicesComboBox.SelectedIndex < 0 && devices.Count > 0)
@@ -294,7 +300,7 @@ public partial class MainForm : Form
             volumeNumericUpDown.Value = Convert.ToDecimal(clampedVolume);
         }
 
-        SetDirty(true);
+        RefreshDirtyState();
     }
 
     private void MarkDirtyFromUserInput()
@@ -304,7 +310,7 @@ public partial class MainForm : Form
             return;
         }
 
-        SetDirty(true);
+        RefreshDirtyState();
     }
 
     private void SetDirty(bool isDirty)
@@ -328,7 +334,30 @@ public partial class MainForm : Form
     private void EndStateLoad()
     {
         _isLoadingState = false;
-        SetDirty(false);
+        RefreshDirtyState();
+    }
+
+    private void RefreshDirtyState()
+    {
+        if (_isLoadingState)
+        {
+            return;
+        }
+
+        var currentDeviceId = (devicesComboBox.SelectedItem as CaptureDeviceInfo)?.Id;
+        var currentVolume = (float)volumeNumericUpDown.Value;
+        var currentEnforcementEnabled = enforcementEnabledCheckBox.Checked;
+
+        var loadedDeviceId = _loadedConfig?.SelectedCaptureDeviceId;
+        var loadedVolume = _loadedConfig?.TargetVolumePercent ?? 100f;
+        var loadedEnforcementEnabled = _loadedConfig?.EnforcementEnabled ?? true;
+
+        var isDirty =
+            !string.Equals(currentDeviceId, loadedDeviceId, StringComparison.OrdinalIgnoreCase) ||
+            Math.Abs(currentVolume - loadedVolume) > 0.01f ||
+            currentEnforcementEnabled != loadedEnforcementEnabled;
+
+        SetDirty(isDirty);
     }
 
     private static string BuildStatusText(MicEnforcementStatus status)
