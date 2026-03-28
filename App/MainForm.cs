@@ -148,6 +148,8 @@ public partial class MainForm : Form
                 {
                     UpdateError(configResponse.Error ?? "Failed to load config.");
                 }
+
+                UpdateCurrentReadout(statusResponse.Payload, devices, configResponse.Payload);
             }
             finally
             {
@@ -275,6 +277,7 @@ public partial class MainForm : Form
     {
         devicesComboBox.SelectedIndexChanged += (_, _) => MarkDirtyFromUserInput();
         volumeNumericUpDown.ValueChanged += (_, _) => MarkDirtyFromUserInput();
+        volumeNumericUpDown.TextChanged += (_, _) => MarkDirtyFromUserInput();
         enforcementEnabledCheckBox.CheckedChanged += (_, _) => MarkDirtyFromUserInput();
     }
 
@@ -326,6 +329,23 @@ public partial class MainForm : Form
 
         var volumeText = status.TargetVolumePercent is null ? "n/a" : $"{status.TargetVolumePercent:0}%";
         return $"Configured mic: {status.SelectedCaptureDeviceId} | Volume: {volumeText} | Enforcement: {(status.EnforcementEnabled ? "enabled" : "disabled")}";
+    }
+
+    private void UpdateCurrentReadout(
+        MicEnforcementStatus? status,
+        IReadOnlyList<CaptureDeviceInfo> devices,
+        ServiceConfig? config)
+    {
+        var selectedDeviceId = config?.SelectedCaptureDeviceId ?? status?.SelectedCaptureDeviceId;
+        var selectedDevice = devices.FirstOrDefault(device =>
+            string.Equals(device.Id, selectedDeviceId, StringComparison.OrdinalIgnoreCase));
+
+        currentMicValueLabel.Text = selectedDevice?.FriendlyName
+            ?? (string.IsNullOrWhiteSpace(selectedDeviceId) ? "Not configured" : selectedDeviceId);
+
+        currentVolumeValueLabel.Text = selectedDevice is null
+            ? "n/a"
+            : $"{selectedDevice.VolumePercent:0}%";
     }
 
     private void InitializeTrayBehavior()
