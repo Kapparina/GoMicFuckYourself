@@ -10,6 +10,9 @@ public partial class MainForm : Form
     private readonly IAgentPipeClient _pipeClient;
     private readonly bool _firstRun;
     private bool _allowExit;
+    private bool _isBusy;
+    private bool _isDirty;
+    private bool _isLoadingState;
 
     public MainForm(IAgentPipeClient pipeClient, bool firstRun)
     {
@@ -17,6 +20,8 @@ public partial class MainForm : Form
         _firstRun = firstRun;
         InitializeComponent();
         InitializeTrayBehavior();
+        HookDirtyTracking();
+        UpdateActionButtons();
 
         if (_firstRun)
         {
@@ -62,64 +67,91 @@ public partial class MainForm : Form
 
     private async void saveButton_Click(object? sender, EventArgs e)
     {
-        await SaveAsync(enforceAfterSave: false);
+        await SaveAsync(closeAfterSave: false);
     }
 
     private async void applyButton_Click(object? sender, EventArgs e)
     {
-        await SaveAsync(enforceAfterSave: true);
+        await SaveAsync(closeAfterSave: true);
+    }
+
+    private async void restartAgentButton_Click(object? sender, EventArgs e)
+    {
+        await RunBusyAsync(async () =>
+        {
+            ProcessCoordinator.RestartAgent();
+
+            var isReady = await AgentProcess.EnsureAgentReadyAsync(CancellationToken.None, startIfNeeded: false);
+            if (!isReady)
+            {
+                UpdateError("The agent did not restart in time.");
+                return;
+            }
+
+            await LoadStateAsync();
+            statusLabel.Text = "The enforcement agent was restarted.";
+        });
     }
 
     private async Task LoadStateAsync()
     {
         await RunBusyAsync(async () =>
         {
-            var (statusResponse, devicesResponse, configResponse) = await LoadAgentStateAsync();
+            BeginStateLoad();
 
-            if (!statusResponse.Success)
+            try
             {
-                statusLabel.Text = statusResponse.Error ?? "Failed to load agent status.";
-            }
-            else if (statusResponse.Payload is { } status)
-            {
-                statusLabel.Text = BuildStatusText(status);
-            }
+                var (statusResponse, devicesResponse, configResponse) = await LoadAgentStateAsync();
 
-            if (!devicesResponse.Success)
-            {
-                devicesComboBox.DataSource = null;
-                UpdateError(devicesResponse.Error ?? "Failed to load devices.");
-                return;
-            }
-
-            var devices = devicesResponse.Payload ?? [];
-            devicesComboBox.DataSource = devices;
-            devicesComboBox.DisplayMember = nameof(CaptureDeviceInfo.FriendlyName);
-            devicesComboBox.ValueMember = nameof(CaptureDeviceInfo.Id);
-
-            if (configResponse.Success && configResponse.Payload is { } config)
-            {
-                enforcementEnabledCheckBox.Checked = config.EnforcementEnabled;
-                volumeNumericUpDown.Value = Convert.ToDecimal(config.TargetVolumePercent ?? 100f);
-
-                if (!string.IsNullOrWhiteSpace(config.SelectedCaptureDeviceId))
+                if (!statusResponse.Success)
                 {
-                    devicesComboBox.SelectedValue = config.SelectedCaptureDeviceId;
+                    statusLabel.Text = statusResponse.Error ?? "Failed to load agent status.";
+                }
+                else if (statusResponse.Payload is { } status)
+                {
+                    statusLabel.Text = BuildStatusText(status);
+                }
+
+                if (!devicesResponse.Success)
+                {
+                    devicesComboBox.DataSource = null;
+                    UpdateError(devicesResponse.Error ?? "Failed to load devices.");
+                    return;
+                }
+
+                var devices = devicesResponse.Payload ?? [];
+                devicesComboBox.DataSource = devices;
+                devicesComboBox.DisplayMember = nameof(CaptureDeviceInfo.FriendlyName);
+                devicesComboBox.ValueMember = nameof(CaptureDeviceInfo.Id);
+
+                if (configResponse.Success && configResponse.Payload is { } config)
+                {
+                    enforcementEnabledCheckBox.Checked = config.EnforcementEnabled;
+                    volumeNumericUpDown.Value = Convert.ToDecimal(config.TargetVolumePercent ?? 100f);
+
+                    if (!string.IsNullOrWhiteSpace(config.SelectedCaptureDeviceId))
+                    {
+                        devicesComboBox.SelectedValue = config.SelectedCaptureDeviceId;
+                    }
+                }
+
+                if (devicesComboBox.SelectedIndex < 0 && devices.Count > 0)
+                {
+                    devicesComboBox.SelectedIndex = 0;
+                }
+
+                if (configResponse.Success)
+                {
+                    errorLabel.Text = string.Empty;
+                }
+                else
+                {
+                    UpdateError(configResponse.Error ?? "Failed to load config.");
                 }
             }
-
-            if (devicesComboBox.SelectedIndex < 0 && devices.Count > 0)
+            finally
             {
-                devicesComboBox.SelectedIndex = 0;
-            }
-
-            if (configResponse.Success)
-            {
-                errorLabel.Text = string.Empty;
-            }
-            else
-            {
-                UpdateError(configResponse.Error ?? "Failed to load config.");
+                EndStateLoad();
             }
         });
     }
@@ -129,13 +161,10 @@ public partial class MainForm : Form
         PipeResponse<List<CaptureDeviceInfo>> Devices,
         PipeResponse<ServiceConfig> Config)> LoadAgentStateAsync()
     {
-        if (_firstRun)
+        var isReady = await AgentProcess.EnsureAgentReadyAsync(CancellationToken.None, startIfNeeded: true);
+        if (!isReady)
         {
-            var isReady = await AgentProcess.EnsureAgentReadyAsync(CancellationToken.None, startIfNeeded: true);
-            if (!isReady)
-            {
-                throw new TimeoutException("The agent did not start in time.");
-            }
+            throw new TimeoutException("The agent did not start in time.");
         }
 
         return await QueryAgentStateAsync();
@@ -152,7 +181,7 @@ public partial class MainForm : Form
         return (statusResponse, devicesResponse, configResponse);
     }
 
-    private async Task SaveAsync(bool enforceAfterSave)
+    private async Task SaveAsync(bool closeAfterSave)
     {
         await RunBusyAsync(async () =>
         {
@@ -179,6 +208,7 @@ public partial class MainForm : Form
             {
                 AutorunRegistry.EnableForCurrentUser();
                 ProcessCoordinator.RestartAgent();
+
                 var isReady = await AgentProcess.EnsureAgentReadyAsync(CancellationToken.None, startIfNeeded: false);
                 if (!isReady)
                 {
@@ -187,22 +217,23 @@ public partial class MainForm : Form
                 }
             }
 
-            if (enforceAfterSave)
+            var enforceResponse = await _pipeClient.ForceEnforceAsync();
+            if (!enforceResponse.Success)
             {
-                var enforceResponse = await _pipeClient.ForceEnforceAsync();
-                if (!enforceResponse.Success)
-                {
-                    UpdateError(enforceResponse.Error ?? "Failed to enforce config.");
-                    return;
-                }
+                UpdateError(enforceResponse.Error ?? "Failed to enforce config.");
+                return;
             }
 
             errorLabel.Text = string.Empty;
+            SetDirty(false);
             statusLabel.Text = _firstRun
                 ? "Configuration saved. Autorun was enabled and the agent was restarted."
-                : enforceAfterSave
-                    ? "Configuration saved and enforcement triggered."
-                    : "Configuration saved.";
+                : "Configuration saved and enforcement triggered.";
+
+            if (closeAfterSave)
+            {
+                HideToTray();
+            }
         });
     }
 
@@ -225,18 +256,60 @@ public partial class MainForm : Form
 
     private void SetBusy(bool busy)
     {
+        _isBusy = busy;
         refreshButton.Enabled = !busy;
-        saveButton.Enabled = !busy;
-        applyButton.Enabled = !busy;
         devicesComboBox.Enabled = !busy;
         volumeNumericUpDown.Enabled = !busy;
         enforcementEnabledCheckBox.Enabled = !busy;
+        restartAgentButton.Enabled = !busy;
+        UpdateActionButtons();
         Cursor = busy ? Cursors.WaitCursor : Cursors.Default;
     }
 
     private void UpdateError(string error)
     {
         errorLabel.Text = error;
+    }
+
+    private void HookDirtyTracking()
+    {
+        devicesComboBox.SelectedIndexChanged += (_, _) => MarkDirtyFromUserInput();
+        volumeNumericUpDown.ValueChanged += (_, _) => MarkDirtyFromUserInput();
+        enforcementEnabledCheckBox.CheckedChanged += (_, _) => MarkDirtyFromUserInput();
+    }
+
+    private void MarkDirtyFromUserInput()
+    {
+        if (_isLoadingState)
+        {
+            return;
+        }
+
+        SetDirty(true);
+    }
+
+    private void SetDirty(bool isDirty)
+    {
+        _isDirty = isDirty;
+        UpdateActionButtons();
+    }
+
+    private void UpdateActionButtons()
+    {
+        var enableSaveActions = !_isBusy && _isDirty;
+        saveButton.Enabled = enableSaveActions;
+        applyButton.Enabled = enableSaveActions;
+    }
+
+    private void BeginStateLoad()
+    {
+        _isLoadingState = true;
+    }
+
+    private void EndStateLoad()
+    {
+        _isLoadingState = false;
+        SetDirty(false);
     }
 
     private static string BuildStatusText(MicEnforcementStatus status)
@@ -300,6 +373,7 @@ public partial class MainForm : Form
     private void exitTrayMenuItem_Click(object? sender, EventArgs e)
     {
         _allowExit = true;
+        ProcessCoordinator.TerminateAgentInstances();
         Close();
     }
 

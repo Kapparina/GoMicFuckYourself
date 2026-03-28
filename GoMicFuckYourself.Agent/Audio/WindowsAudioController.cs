@@ -6,8 +6,6 @@ namespace GoMicFuckYourself.Agent.Audio;
 
 public sealed class WindowsAudioController : IAudioController, IMMNotificationClient
 {
-    private static readonly DeviceState AllDeviceStates =
-        DeviceState.Active | DeviceState.Disabled | DeviceState.NotPresent | DeviceState.Unplugged;
     private static readonly DeviceState ObservableDeviceStates =
         DeviceState.Active;
 
@@ -186,7 +184,7 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
 
     private IReadOnlyList<CaptureDeviceInfo> EnumerateCaptureDevices()
     {
-        var collection = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, AllDeviceStates);
+        var collection = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, ObservableDeviceStates);
 
         var defaultDeviceId = TryGetDefaultCaptureDevice(AudioPolicyRole.Multimedia)?.ID;
         var defaultCommunicationsId = TryGetDefaultCaptureDevice(AudioPolicyRole.Communications)?.ID;
