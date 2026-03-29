@@ -2,11 +2,8 @@
 
 [![Release Installer](https://github.com/Kapparina/GoMicFuckYourself/actions/workflows/release.yml/badge.svg)](https://github.com/Kapparina/GoMicFuckYourself/actions/workflows/release.yml)
 
-GoMicFuckYourself is a Windows utility that keeps one microphone locked as:
-
-- your default input device
-- your default communications device
-- your chosen input volume
+GoMicFuckYourself is a Windows utility that keeps one microphone set as your Default and Default Communications Device
+whilst also ensuring that any changes to input volume not done via the app are reverted.
 
 If Windows or another app changes those settings, GoMicFuckYourself changes them back.
 
@@ -24,8 +21,8 @@ Download the latest `.msi` installer from the [Releases](https://github.com/Kapp
 
 When the app opens for the first time:
 
-1. Choose the microphone you want to keep.
-2. Set the volume level you want to keep.
+1. Choose the microphone you wish to keep as your Default and Default Communications Device.
+2. Set the volume level you want to keep (it should be set to the currently configured volume for the selected device by default).
 3. Leave enforcement enabled.
 4. Click `Save and close`.
 
@@ -71,7 +68,7 @@ If the app is not visible:
 
 ## Developer Docs
 
-Development and release docs live under [`docs/`](docs/).
+Development and release docs live under [`docs/`](./docs/).
 
 Useful entry points:
 
@@ -83,4 +80,4 @@ Useful entry points:
 
 ## License
 
-This project is licensed under the terms in [LICENSE](LICENSE).
+This project is licensed under the terms in [LICENSE](./LICENSE).
