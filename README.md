@@ -80,4 +80,4 @@ Useful entry points:
 
 ## License
 
-This project is licensed under the terms in [LICENSE](./LICENSE).
+This project is licensed under the terms in [LICENCE](./LICENCE).
