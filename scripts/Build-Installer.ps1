@@ -32,8 +32,16 @@ if (-not $Version)
     }
     else
     {
-        $Version = "dev"
+        $Version = "0.1.0"
     }
+}
+
+$versionParts = $Version.Split('.')
+switch ($versionParts.Length)
+{
+    2 { $assemblyVersion = "$Version.0.0" }
+    3 { $assemblyVersion = "$Version.0" }
+    default { $assemblyVersion = $Version }
 }
 
 if (-not (Get-Command wix.exe -ErrorAction SilentlyContinue))
@@ -57,10 +65,18 @@ try
 {
     & dotnet publish $agentProject `
     -c $Configuration `
+    -p:Version=$Version `
+    -p:AssemblyVersion=$assemblyVersion `
+    -p:FileVersion=$assemblyVersion `
+    -p:InformationalVersion=$Version `
     -o $agentPublish
 
     & dotnet publish $trayProject `
     -c $Configuration `
+    -p:Version=$Version `
+    -p:AssemblyVersion=$assemblyVersion `
+    -p:FileVersion=$assemblyVersion `
+    -p:InformationalVersion=$Version `
     -o $trayPublish
 
     & dotnet run --project $installerProject -c $Configuration -- `

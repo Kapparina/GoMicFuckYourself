@@ -202,6 +202,9 @@ public partial class MainForm : Form
 
     private async Task SaveAsync(bool closeAfterSave)
     {
+        var savedSuccessfully = false;
+        string? successMessage = null;
+
         await RunBusyAsync(async () =>
         {
             if (devicesComboBox.SelectedItem is not CaptureDeviceInfo selectedDevice)
@@ -250,15 +253,28 @@ public partial class MainForm : Form
             errorLabel.Text = string.Empty;
             _loadedStartOnLoginEnabled = startOnLoginCheckBox.Checked;
             SetDirty(false);
-            statusLabel.Text = _firstRun
+            successMessage = _firstRun
                 ? "Configuration saved and startup behavior was updated."
                 : "Configuration saved and enforcement triggered.";
-
-            if (closeAfterSave)
-            {
-                HideToTray();
-            }
+            savedSuccessfully = true;
         });
+
+        if (!savedSuccessfully)
+        {
+            return;
+        }
+
+        await LoadStateAsync();
+
+        if (!string.IsNullOrWhiteSpace(successMessage))
+        {
+            statusLabel.Text = successMessage;
+        }
+
+        if (closeAfterSave)
+        {
+            HideToTray();
+        }
     }
 
     private async Task RunBusyAsync(Func<Task> action)

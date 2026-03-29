@@ -1,15 +1,19 @@
 <Project>
-
-  <PropertyGroup>
-    <Company>GoMicFuckYourself</Company>
-    <Authors>GoMicFuckYourself</Authors>
-    <Product>GoMicFuckYourself</Product>
-    <Version>0.1.0</Version>
-    <AssemblyVersion>0.1.0.0</AssemblyVersion>
-    <FileVersion>0.1.0.0</FileVersion>
-    <InformationalVersion>0.1.0</InformationalVersion>
-    <RepositoryType>git</RepositoryType>
-    <NeutralLanguage>en-US</NeutralLanguage>
-  </PropertyGroup>
-
+    <PropertyGroup>
+        <Company>github.com/Kapparina</Company>
+        <Authors>Kapparina</Authors>
+        <Product>GoMicFuckYourself</Product>
+        <Copyright>Copyright (c) Kapparina</Copyright>
+        <DefaultVersion>0.0.1.0</DefaultVersion>
+        <Version Condition="'$(Version)' == ''">$(DefaultVersion)</Version>
+        <AssemblyVersion Condition="'$(AssemblyVersion)' == ''">$(DefaultVersion).0</AssemblyVersion>
+        <FileVersion Condition="'$(FileVersion)' == ''">$(DefaultVersion).0</FileVersion>
+        <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(Version)</InformationalVersion>
+        <RepositoryType>git</RepositoryType>
+        <NeutralLanguage>en-US</NeutralLanguage>
+        <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+        <AssemblyCompany>$(Company)</AssemblyCompany>
+        <AssemblyProduct>$(Product)</AssemblyProduct>
+        <AssemblyCopyright>$(Copyright)</AssemblyCopyright>
+    </PropertyGroup>
 </Project>
