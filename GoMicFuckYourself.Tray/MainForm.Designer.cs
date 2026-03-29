@@ -6,7 +6,6 @@ partial class MainForm
     private NotifyIcon trayNotifyIcon;
     private ContextMenuStrip trayContextMenuStrip;
     private ToolStripMenuItem openTrayMenuItem;
-    private ToolStripMenuItem refreshTrayMenuItem;
     private ToolStripSeparator traySeparator;
     private ToolStripMenuItem exitTrayMenuItem;
     private Label titleLabel;
@@ -42,7 +41,6 @@ partial class MainForm
         components = new System.ComponentModel.Container();
         trayContextMenuStrip = new ContextMenuStrip(components);
         openTrayMenuItem = new ToolStripMenuItem();
-        refreshTrayMenuItem = new ToolStripMenuItem();
         traySeparator = new ToolStripSeparator();
         exitTrayMenuItem = new ToolStripMenuItem();
         trayNotifyIcon = new NotifyIcon(components);
@@ -69,9 +67,9 @@ partial class MainForm
         // 
         // trayContextMenuStrip
         // 
-        trayContextMenuStrip.Items.AddRange(new ToolStripItem[] { openTrayMenuItem, refreshTrayMenuItem, traySeparator, exitTrayMenuItem });
+        trayContextMenuStrip.Items.AddRange(new ToolStripItem[] { openTrayMenuItem, traySeparator, exitTrayMenuItem });
         trayContextMenuStrip.Name = "trayContextMenuStrip";
-        trayContextMenuStrip.Size = new Size(114, 76);
+        trayContextMenuStrip.Size = new Size(104, 54);
         // 
         // openTrayMenuItem
         // 
@@ -80,22 +78,15 @@ partial class MainForm
         openTrayMenuItem.Text = "Open";
         openTrayMenuItem.Click += openTrayMenuItem_Click;
         // 
-        // refreshTrayMenuItem
-        // 
-        refreshTrayMenuItem.Name = "refreshTrayMenuItem";
-        refreshTrayMenuItem.Size = new Size(113, 22);
-        refreshTrayMenuItem.Text = "Refresh";
-        refreshTrayMenuItem.Click += refreshTrayMenuItem_Click;
-        // 
         // traySeparator
         // 
         traySeparator.Name = "traySeparator";
-        traySeparator.Size = new Size(110, 6);
+        traySeparator.Size = new Size(100, 6);
         // 
         // exitTrayMenuItem
         // 
         exitTrayMenuItem.Name = "exitTrayMenuItem";
-        exitTrayMenuItem.Size = new Size(113, 22);
+        exitTrayMenuItem.Size = new Size(103, 22);
         exitTrayMenuItem.Text = "Exit";
         exitTrayMenuItem.Click += exitTrayMenuItem_Click;
         // 

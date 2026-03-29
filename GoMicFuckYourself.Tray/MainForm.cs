@@ -149,6 +149,13 @@ public partial class MainForm : Form
                     devicesComboBox.SelectedIndex = 0;
                 }
 
+                if (string.IsNullOrWhiteSpace(_loadedConfig?.SelectedCaptureDeviceId) &&
+                    devicesComboBox.SelectedItem is CaptureDeviceInfo defaultDevice)
+                {
+                    var clampedVolume = Math.Clamp(defaultDevice.VolumePercent, 0f, 100f);
+                    volumeNumericUpDown.Value = Convert.ToDecimal(clampedVolume);
+                }
+
                 if (configResponse.Success)
                 {
                     errorLabel.Text = string.Empty;
@@ -439,11 +446,6 @@ public partial class MainForm : Form
     private async void openTrayMenuItem_Click(object? sender, EventArgs e)
     {
         RestoreFromTray();
-        await LoadStateAsync();
-    }
-
-    private async void refreshTrayMenuItem_Click(object? sender, EventArgs e)
-    {
         await LoadStateAsync();
     }
 
