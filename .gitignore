@@ -271,3 +271,6 @@ FodyWeavers.xsd
 *.msm
 *.msp
 *.sln.iml
+!/.idea/.idea.GoMicFuckYourself/.idea/runConfigurations/
+!/.idea/.idea.GoMicFuckYourself/.idea/
+!/.idea/.idea.GoMicFuckYourself/.idea/inspectionProfiles/
