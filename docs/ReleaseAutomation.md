@@ -73,6 +73,8 @@ For example:
 
 If no tag is available, the script falls back to `0.1.0`.
 
+That same version is also passed into the published tray and agent binaries, so their Windows file properties line up with the release tag.
+
 ## Manual Local Build
 
 To test the installer locally without creating a release:

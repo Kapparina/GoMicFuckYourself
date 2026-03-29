@@ -2,12 +2,15 @@
     <PropertyGroup>
         <Company>github.com/Kapparina</Company>
         <Authors>Kapparina</Authors>
-        <Product>GoMicFuckYourself</Product>
-        <Copyright>Copyright (c) Kapparina</Copyright>
-        <DefaultVersion>0.0.1.0</DefaultVersion>
-        <Version Condition="'$(Version)' == ''">$(DefaultVersion)</Version>
-        <AssemblyVersion Condition="'$(AssemblyVersion)' == ''">$(DefaultVersion).0</AssemblyVersion>
-        <FileVersion Condition="'$(FileVersion)' == ''">$(DefaultVersion).0</FileVersion>
+    <Product>GoMicFuckYourself</Product>
+    <Copyright>Copyright (c) Kapparina</Copyright>
+    <DefaultVersion>0.1.0</DefaultVersion>
+    <Version Condition="'$(Version)' == ''">$(DefaultVersion)</Version>
+    <NormalizedVersion>$(Version)</NormalizedVersion>
+    <NormalizedVersion Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(Version)', '^\d+\.\d+\.\d+$'))">$([System.Text.RegularExpressions.Regex]::Replace('$(Version)', '^(\d+\.\d+\.\d+)$', '$1.0'))</NormalizedVersion>
+    <NormalizedVersion Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(Version)', '^\d+\.\d+$'))">$([System.Text.RegularExpressions.Regex]::Replace('$(Version)', '^(\d+\.\d+)$', '$1.0.0'))</NormalizedVersion>
+    <AssemblyVersion Condition="'$(AssemblyVersion)' == ''">$(NormalizedVersion)</AssemblyVersion>
+    <FileVersion Condition="'$(FileVersion)' == ''">$(NormalizedVersion)</FileVersion>
         <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(Version)</InformationalVersion>
         <RepositoryType>git</RepositoryType>
         <NeutralLanguage>en-US</NeutralLanguage>

@@ -11,27 +11,24 @@ Project:
 NuGet package:
 
 - `WixSharp_wix4`
-- version aligned to the latest GitHub release currently in use here: `2.12.0`
-
-WiX tool prerequisite:
-
-- `dotnet tool install --global wix`
+- version currently in use here: `2.12.0`
 
 ## Payload Layout
 
-The installer project expects published binaries next to the installer output or under an explicitly supplied payload root:
+The installer expects published binaries under the payload root. The standard local build uses `artifacts\payload`:
 
 ```text
-payload/
-  Agent/
-    GoMicFuckYourself.Agent.exe
-    ...
-  Tray/
-    GoMicFuckYourself.Tray.exe
-    ...
+artifacts/
+  payload/
+    Agent/
+      GoMicFuckYourself.Agent.exe
+      ...
+    Tray/
+      GoMicFuckYourself.Tray.exe
+      ...
 ```
 
-Override the payload location when generating the MSI:
+You can override the payload location when generating the MSI:
 
 ```powershell
 dotnet run --project .\GoMicFuckYourself.Installer -- --payload-root F:\artifacts\publish
@@ -44,49 +41,52 @@ The MSI installs:
 - agent files to `%ProgramFiles%\GoMicFuckYourself\Agent\`
 - tray files to `%ProgramFiles%\GoMicFuckYourself\Tray\`
 - default config to `%ProgramData%\GoMicFuckYourself\agent-config.json`
+- a Start menu shortcut for `GoMicFuckYourself`
 
 It also:
 
 - optionally launches the tray in `--first-run` mode from the installer finish page
-- defers tray and agent autorun registration until first-run setup completes
+- defers tray autorun registration until first-run setup completes
+- removes the current user's tray autorun registry entries during uninstall
+- grants standard users write access to `%ProgramData%\GoMicFuckYourself` so normal config saves do not require elevation
 
-## Winget And Scoop
+## Build
 
-This MSI route is compatible with both `winget` and `scoop`, but the package managers need distribution metadata in addition to the MSI itself.
+Install WiX once:
 
-### Winget
+```powershell
+dotnet tool install --global wix --version 6.0.2
+wix extension add -g WixToolset.UI.wixext/6.0.2
+wix extension add -g WixToolset.Util.wixext/6.0.2
+```
 
-You will need:
+Build the installer from the repo root:
 
-- a stable MSI URL
-- SHA256 hash for the MSI
-- package identifier, version, and locale metadata
+```powershell
+.\scripts\Build-Installer.ps1 -Configuration Release
+```
 
-Typical next step:
+The script:
 
-1. publish the MSI as a GitHub Release asset
-2. generate a winget manifest with `.\scripts\Generate-PackageManifests.ps1`
-3. submit it to the `microsoft/winget-pkgs` repository
+- derives the version from the latest Git tag by default
+- publishes the agent and tray payloads
+- builds the MSI
+- prints the MSI path and SHA256 at the end
 
-### Scoop
+You can override the version manually if needed:
 
-You will need:
+```powershell
+.\scripts\Build-Installer.ps1 -Configuration Release -Version 1.2.3
+```
 
-- a stable MSI or zip URL
-- SHA256 hash
-- a Scoop manifest JSON file
+## Version Metadata
 
-Typical next step:
+The installer version comes from the latest Git tag, and that same version is passed into the published tray and agent binaries.
 
-1. publish the MSI
-2. generate the Scoop manifest with `.\scripts\Generate-PackageManifests.ps1`
-3. add it to your bucket repo
+For example, tag `v0.1.7` results in:
 
-## Current Limitation
+- MSI version `0.1.7`
+- tray `FileVersion` `0.1.7.0`
+- agent `FileVersion` `0.1.7.0`
 
-The MSI and distribution manifests still need final release-specific values at publish time:
-
-- MSI product code
-- final release URL
-- final SHA256
-- GitHub repository slug used for Scoop autoupdate
+Publisher and product metadata for the binaries are defined in [`Directory.Build.props`](../Directory.Build.props).
