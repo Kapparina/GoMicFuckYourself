@@ -46,7 +46,16 @@ internal static class InstallerProjectFactory
         project.Description = InstallerConstants.ProductDescription;
         project.ControlPanelInfo.ProductIcon = payload.TrayExecutablePath;
         project.MajorUpgradeStrategy = MajorUpgradeStrategy.Default;
-        project.LicenceFile = Path.Combine(AppContext.BaseDirectory, "Assets", "License.rtf");
+        project.LicenceFile = Path.Combine(AppContext.BaseDirectory, "Assets", "Licence.rtf");
+        project.Actions = new WixSharp.Action[]
+        {
+            new ManagedAction(
+                UninstallCleanupActions.RemoveCurrentUserAutorun,
+                Return.ignore,
+                When.Before,
+                Step.RemoveFiles,
+                new Condition("REMOVE=\"ALL\""))
+        };
 
         return project;
     }

@@ -42,7 +42,7 @@ jobs:
           git rev-parse HEAD
           Get-ChildItem -Name
           Test-Path .\GoMicFuckYourself.Agent\GoMicFuckYourself.Agent.csproj
-          Test-Path .\App\App.csproj
+          Test-Path .\GoMicFuckYourself.Tray\GoMicFuckYourself.Tray.csproj
           Test-Path .\GoMicFuckYourself.Installer\GoMicFuckYourself.Installer.csproj
 
       - name: Build installer

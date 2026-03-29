@@ -10,6 +10,7 @@ public partial class MainForm : Form
     private readonly IAgentPipeClient _pipeClient;
     private readonly bool _firstRun;
     private ServiceConfig? _loadedConfig;
+    private bool _loadedStartOnLoginEnabled;
     private bool _allowExit;
     private bool _isBusy;
     private bool _isDirty;
@@ -124,6 +125,8 @@ public partial class MainForm : Form
                 devicesComboBox.DataSource = devices;
                 devicesComboBox.DisplayMember = nameof(CaptureDeviceInfo.FriendlyName);
                 devicesComboBox.ValueMember = nameof(CaptureDeviceInfo.Id);
+                _loadedStartOnLoginEnabled = AutorunRegistry.IsEnabledForCurrentUser();
+                startOnLoginCheckBox.Checked = _loadedStartOnLoginEnabled;
 
                 if (configResponse.Success && configResponse.Payload is { } config)
                 {
@@ -214,7 +217,7 @@ public partial class MainForm : Form
 
             if (_firstRun)
             {
-                AutorunRegistry.EnableForCurrentUser();
+                AutorunRegistry.SetForCurrentUser(startOnLoginCheckBox.Checked);
                 ProcessCoordinator.RestartAgent();
 
                 var isReady = await AgentProcess.EnsureAgentReadyAsync(CancellationToken.None, startIfNeeded: false);
@@ -223,6 +226,10 @@ public partial class MainForm : Form
                     UpdateError("Configuration was saved, but the agent did not restart in time.");
                     return;
                 }
+            }
+            else
+            {
+                AutorunRegistry.SetForCurrentUser(startOnLoginCheckBox.Checked);
             }
 
             var enforceResponse = await _pipeClient.ForceEnforceAsync();
@@ -233,9 +240,10 @@ public partial class MainForm : Form
             }
 
             errorLabel.Text = string.Empty;
+            _loadedStartOnLoginEnabled = startOnLoginCheckBox.Checked;
             SetDirty(false);
             statusLabel.Text = _firstRun
-                ? "Configuration saved. Autorun was enabled and the agent was restarted."
+                ? "Configuration saved and startup behavior was updated."
                 : "Configuration saved and enforcement triggered.";
 
             if (closeAfterSave)
@@ -269,6 +277,7 @@ public partial class MainForm : Form
         devicesComboBox.Enabled = !busy;
         volumeNumericUpDown.Enabled = !busy;
         enforcementEnabledCheckBox.Enabled = !busy;
+        startOnLoginCheckBox.Enabled = !busy;
         restartAgentButton.Enabled = !busy;
         UpdateActionButtons();
         Cursor = busy ? Cursors.WaitCursor : Cursors.Default;
@@ -285,6 +294,7 @@ public partial class MainForm : Form
         volumeNumericUpDown.ValueChanged += (_, _) => MarkDirtyFromUserInput();
         volumeNumericUpDown.TextChanged += (_, _) => MarkDirtyFromUserInput();
         enforcementEnabledCheckBox.CheckedChanged += (_, _) => MarkDirtyFromUserInput();
+        startOnLoginCheckBox.CheckedChanged += (_, _) => MarkDirtyFromUserInput();
     }
 
     private void HandleSelectedDeviceChanged()
@@ -347,6 +357,7 @@ public partial class MainForm : Form
         var currentDeviceId = (devicesComboBox.SelectedItem as CaptureDeviceInfo)?.Id;
         var currentVolume = (float)volumeNumericUpDown.Value;
         var currentEnforcementEnabled = enforcementEnabledCheckBox.Checked;
+        var currentStartOnLoginEnabled = startOnLoginCheckBox.Checked;
 
         var loadedDeviceId = _loadedConfig?.SelectedCaptureDeviceId;
         var loadedVolume = _loadedConfig?.TargetVolumePercent ?? 100f;
@@ -355,7 +366,8 @@ public partial class MainForm : Form
         var isDirty =
             !string.Equals(currentDeviceId, loadedDeviceId, StringComparison.OrdinalIgnoreCase) ||
             Math.Abs(currentVolume - loadedVolume) > 0.01f ||
-            currentEnforcementEnabled != loadedEnforcementEnabled;
+            currentEnforcementEnabled != loadedEnforcementEnabled ||
+            currentStartOnLoginEnabled != _loadedStartOnLoginEnabled;
 
         SetDirty(isDirty);
     }

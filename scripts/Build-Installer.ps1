@@ -12,31 +12,39 @@ $agentPublish = Join-Path $payloadRoot "Agent"
 $trayPublish = Join-Path $payloadRoot "Tray"
 $msiOutput = Join-Path $root "GoMicFuckYourself.Installer\bin\$Configuration\net48\msi"
 $agentProject = Join-Path $root "GoMicFuckYourself.Agent\GoMicFuckYourself.Agent.csproj"
-$trayProject = Join-Path $root "App\App.csproj"
+$trayProject = Join-Path $root "GoMicFuckYourself.Tray\GoMicFuckYourself.Tray.csproj"
 $installerProject = Join-Path $root "GoMicFuckYourself.Installer\GoMicFuckYourself.Installer.csproj"
 
-if (-not $Version) {
+if (-not $Version)
+{
     $latestTag = ""
-    try {
-        $latestTag = (git -C $root describe --tags --abbrev=0 2>$null).Trim()
+    try
+    {
+        $latestTag = (git -C $root describe --tags --abbrev=0 2> $null).Trim()
     }
-    catch {
+    catch
+    {
     }
 
-    if ($latestTag) {
+    if ($latestTag)
+    {
         $Version = $latestTag.TrimStart('v', 'V')
     }
-    else {
-        $Version = "0.1.0"
+    else
+    {
+        $Version = "dev"
     }
 }
 
-if (-not (Get-Command wix.exe -ErrorAction SilentlyContinue)) {
+if (-not (Get-Command wix.exe -ErrorAction SilentlyContinue))
+{
     throw "wix.exe cannot be found. Install WiX with: dotnet tool install --global wix"
 }
 
-foreach ($requiredPath in @($agentProject, $trayProject, $installerProject)) {
-    if (-not (Test-Path -LiteralPath $requiredPath)) {
+foreach ($requiredPath in @($agentProject, $trayProject, $installerProject))
+{
+    if (-not (Test-Path -LiteralPath $requiredPath))
+    {
         throw "Required project file was not found: $requiredPath"
     }
 }
@@ -45,7 +53,8 @@ New-Item -ItemType Directory -Force -Path $agentPublish | Out-Null
 New-Item -ItemType Directory -Force -Path $trayPublish | Out-Null
 
 Push-Location $root
-try {
+try
+{
     & dotnet publish $agentProject `
     -c $Configuration `
     -o $agentPublish
@@ -58,14 +67,16 @@ try {
     --payload-root $payloadRoot `
     --version $Version
 }
-finally {
+finally
+{
     Pop-Location
 }
 
 $msi = Get-ChildItem -Path $msiOutput -Filter *.msi | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
-if ($null -ne $msi) {
+if ($null -ne $msi)
+{
     $hash = (Get-FileHash -Path $msi.FullName -Algorithm SHA256).Hash
     Write-Host "Version: $Version"
-    Write-Host "MSI: $($msi.FullName)"
+    Write-Host "MSI: $( $msi.FullName )"
     Write-Host "SHA256: $hash"
 }

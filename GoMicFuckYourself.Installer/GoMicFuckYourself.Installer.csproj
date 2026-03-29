@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="WixSharp_wix4" Version="2.12.0" />
+    <PackageReference Include="WixToolset.Dtf.WindowsInstaller" Version="4.0.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -21,16 +22,16 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <GeneratedLicenseRtf>$(BaseIntermediateOutputPath)Generated\License.rtf</GeneratedLicenseRtf>
+    <GeneratedLicenceRtf>$(BaseIntermediateOutputPath)Generated\Licence.rtf</GeneratedLicenceRtf>
   </PropertyGroup>
 
-  <Target Name="GenerateInstallerLicenseRtf" BeforeTargets="BeforeBuild">
-    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\scripts\Generate-LicenseRtf.ps1&quot; -LicensePath &quot;$(MSBuildProjectDirectory)\..\LICENCE&quot; -OutputPath &quot;$(MSBuildProjectDirectory)\$(GeneratedLicenseRtf)&quot;" />
+  <Target Name="GenerateInstallerLicenceRtf" BeforeTargets="BeforeBuild">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\scripts\Generate-LicenceRtf.ps1&quot; -LicencePath &quot;$(MSBuildProjectDirectory)\..\LICENCE&quot; -OutputPath &quot;$(MSBuildProjectDirectory)\$(GeneratedLicenceRtf)&quot;" />
   </Target>
 
   <ItemGroup>
-    <None Include="$(GeneratedLicenseRtf)">
-      <Link>Assets\License.rtf</Link>
+    <None Include="$(GeneratedLicenceRtf)">
+      <Link>Assets\Licence.rtf</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

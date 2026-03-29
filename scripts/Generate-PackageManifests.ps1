@@ -21,9 +21,9 @@ param(
 
     [string]$ShortDescription = "Enforces a selected microphone as the default capture and communications device.",
 
-    [string]$License = "Proprietary",
+    [string]$Licence = "Proprietary",
 
-    [string]$LicenseUrl = "",
+    [string]$LicenceUrl = "",
 
     [string]$Homepage = "",
 
@@ -34,7 +34,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-if ([string]::IsNullOrWhiteSpace($ManifestRoot)) {
+if ( [string]::IsNullOrWhiteSpace($ManifestRoot))
+{
     $ManifestRoot = Join-Path (Split-Path -Parent $PSScriptRoot) "distribution"
 }
 
@@ -54,8 +55,22 @@ ManifestType: version
 ManifestVersion: 1.10.0
 "@
 
-$licenseUrlLine = if ([string]::IsNullOrWhiteSpace($LicenseUrl)) { "" } else { "LicenseUrl: $LicenseUrl`r`n" }
-$homepageLine = if ([string]::IsNullOrWhiteSpace($Homepage)) { "" } else { "PackageUrl: $Homepage`r`n" }
+$licenceUrlLine = if ( [string]::IsNullOrWhiteSpace($LicenceUrl))
+{
+    ""
+}
+else
+{
+    "LicenceUrl: $LicenceUrl`r`n"
+}
+$homepageLine = if ( [string]::IsNullOrWhiteSpace($Homepage))
+{
+    ""
+}
+else
+{
+    "PackageUrl: $Homepage`r`n"
+}
 
 $wingetLocale = @"
 # yaml-language-server: `$schema=https://aka.ms/winget-manifest.defaultLocale.1.10.0.schema.json
@@ -66,8 +81,8 @@ PackageLocale: en-US
 Publisher: $Publisher
 PublisherUrl: $PublisherUrl
 PackageName: $PackageName
-License: $License
-$licenseUrlLine$homepageLine
+Licence: $Licence
+$licenceUrlLine$homepageLine
 ShortDescription: $ShortDescription
 ManifestType: defaultLocale
 ManifestVersion: 1.10.0
@@ -95,14 +110,21 @@ ManifestType: installer
 ManifestVersion: 1.10.0
 "@
 
-$resolvedHomepage = if ([string]::IsNullOrWhiteSpace($Homepage)) { $PublisherUrl } else { $Homepage }
+$resolvedHomepage = if ( [string]::IsNullOrWhiteSpace($Homepage))
+{
+    $PublisherUrl
+}
+else
+{
+    $Homepage
+}
 
 $scoopManifest = @"
 {
   "version": "$Version",
   "description": "$ShortDescription",
   "homepage": "$resolvedHomepage",
-  "license": "$License",
+  "licence": "$Licence",
   "architecture": {
     "64bit": {
       "url": "$InstallerUrl",
@@ -139,6 +161,7 @@ Set-Content -Path (Join-Path $scoopRoot "gomicfuckyourself.json") -Value $scoopM
 
 Write-Host "Generated winget manifests in $wingetRoot"
 Write-Host "Generated scoop manifest in $scoopRoot"
-if ([string]::IsNullOrWhiteSpace($RepositorySlug)) {
+if ( [string]::IsNullOrWhiteSpace($RepositorySlug))
+{
     throw "RepositorySlug is required. Example: owner/repo"
 }

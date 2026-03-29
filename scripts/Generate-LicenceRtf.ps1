@@ -1,14 +1,14 @@
 param(
     [Parameter(Mandatory = $true)]
-    [string]$LicensePath,
+    [string]$LicencePath,
 
     [Parameter(Mandatory = $true)]
     [string]$OutputPath
 )
 
-$licenseText = Get-Content -Path $LicensePath -Raw -Encoding UTF8
+$licenceText = Get-Content -Path $LicencePath -Raw -Encoding UTF8
 
-$escapedText = $licenseText `
+$escapedText = $licenceText `
     -replace '\\', '\\\\' `
     -replace '\{', '\{' `
     -replace '\}', '\}'

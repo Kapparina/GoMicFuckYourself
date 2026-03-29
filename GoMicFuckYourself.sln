@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "App", "App\App.csproj", "{C8BB9E2E-0DFF-4F31-A098-836FF9F3E8E6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoMicFuckYourself.Tray", "GoMicFuckYourself.Tray\GoMicFuckYourself.Tray.csproj", "{C8BB9E2E-0DFF-4F31-A098-836FF9F3E8E6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoMicFuckYourself.Contracts", "GoMicFuckYourself.Contracts\GoMicFuckYourself.Contracts.csproj", "{82CE2A4B-0172-43D3-AF1C-ECE0B7441E4F}"
 EndProject

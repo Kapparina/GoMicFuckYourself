@@ -68,15 +68,12 @@ If the app is not visible:
 
 ## Developer Docs
 
-Development and release docs live under [`docs/`](./docs/).
+Development and release docs live under [`docs/`](./docs).
 
 Useful entry points:
 
-- [Installer bootstrap contract](docs/InstallerBootstrapContract.md)
 - [Installer packaging](docs/InstallerPackaging.md)
 - [Release automation](docs/ReleaseAutomation.md)
-- [Release checklist](docs/ReleaseChecklist.md)
-- [Release notes template](docs/ReleaseNotesTemplate.md)
 
 ## License
 
