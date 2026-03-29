@@ -8,7 +8,7 @@ $msiOutput = Join-Path $root "GoMicFuckYourself.Installer\bin\$Configuration\net
 Push-Location $msiOutput
 try
 {
-    $msiFile = (Get-ChildItem -Filter "*.msi" | Sort-Object LastWriteTimeUtc | Select-Object -First 1)
+    $msiFile = (Get-ChildItem -Filter "*.msi" | Sort-Object LastWriteTimeUtc | Select-Object -Last 1)
     if (-not $msiFile)
     {
         throw "No MSI file found in output directory: $msiOutput"
@@ -20,7 +20,6 @@ try
    
     Write-Host "Starting installer with elevated privileges..."
     Start-Process msiexec.exe -ArgumentList $argArray -Verb RunAs -Wait
-    Write-Host "Installer process completed with exit code: $LASTEXITCODE"
 }
 finally
 {

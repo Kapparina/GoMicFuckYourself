@@ -72,7 +72,7 @@ finally
     Pop-Location
 }
 
-$msi = Get-ChildItem -Path $msiOutput -Filter *.msi | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+$msi = Get-ChildItem -Path $msiOutput -Filter *.msi | Sort-Object LastWriteTimeUtc | Select-Object -Last 1
 if ($null -ne $msi)
 {
     $hash = (Get-FileHash -Path $msi.FullName -Algorithm SHA256).Hash

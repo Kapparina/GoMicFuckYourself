@@ -125,7 +125,8 @@ public partial class MainForm : Form
                 devicesComboBox.DataSource = devices;
                 devicesComboBox.DisplayMember = nameof(CaptureDeviceInfo.FriendlyName);
                 devicesComboBox.ValueMember = nameof(CaptureDeviceInfo.Id);
-                _loadedStartOnLoginEnabled = AutorunRegistry.IsEnabledForCurrentUser();
+                var startupState = AutorunRegistry.GetStartupStateForCurrentUser();
+                _loadedStartOnLoginEnabled = startupState ?? true;
                 startOnLoginCheckBox.Checked = _loadedStartOnLoginEnabled;
 
                 if (configResponse.Success && configResponse.Payload is { } config)
