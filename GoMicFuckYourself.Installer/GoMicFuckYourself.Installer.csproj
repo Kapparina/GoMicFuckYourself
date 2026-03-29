@@ -25,7 +25,7 @@
   </PropertyGroup>
 
   <Target Name="GenerateInstallerLicenseRtf" BeforeTargets="BeforeBuild">
-    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\scripts\Generate-LicenseRtf.ps1&quot; -LicensePath &quot;$(MSBuildProjectDirectory)\..\LICENSE&quot; -OutputPath &quot;$(MSBuildProjectDirectory)\$(GeneratedLicenseRtf)&quot;" />
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\scripts\Generate-LicenseRtf.ps1&quot; -LicensePath &quot;$(MSBuildProjectDirectory)\..\LICENCE&quot; -OutputPath &quot;$(MSBuildProjectDirectory)\$(GeneratedLicenseRtf)&quot;" />
   </Target>
 
   <ItemGroup>
