@@ -1,0 +1,6 @@
+﻿<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Start Installer" type="PowerShellRunType" factoryName="PowerShell" scriptUrl="Start-Installer.ps1" commandOptions="-NoProfile" workingDirectory="$SolutionDir$/scripts" executablePath="pwsh.exe">
+    <envs />
+    <method v="2" />
+  </configuration>
+</component>

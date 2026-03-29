@@ -1,0 +1,7 @@
+﻿<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Rebuild &amp; Uninstall" type="CompoundRunConfigurationType">
+    <toRun name="Build Installer" type="PowerShellRunType" />
+    <toRun name="Uninstall Application" type="PowerShellRunType" />
+    <method v="2" />
+  </configuration>
+</component>
