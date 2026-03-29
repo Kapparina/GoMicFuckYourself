@@ -4,18 +4,23 @@
 
 1. Install WiX if needed:
    - `dotnet tool install --global wix`
-2. Ensure the WiX UI extension is installed:
+2. Ensure the required WiX extensions are installed:
+   - `wix extension add -g WixToolset.Bal.wixext/6.0.2`
+   - `wix extension add -g WixToolset.Netfx.wixext/6.0.2`
    - `wix extension add -g WixToolset.UI.wixext/6.0.2`
-3. Build the MSI:
+   - `wix extension add -g WixToolset.Util.wixext/6.0.2`
+3. Build the installer artifacts:
    - `.\scripts\Build-Installer.ps1 -Configuration Release`
 
 ## Verify
 
-1. Confirm the MSI exists under:
+1. Confirm the bootstrapper EXE and MSI exist under:
    - `GoMicFuckYourself.Installer\bin\Release\net48\msi\`
-2. Record the emitted SHA256 hash.
+2. Record the emitted SHA256 hashes.
 3. Test install on a clean machine or VM.
 4. Verify:
+   - bootstrapper installs the .NET Desktop Runtime when it is missing
+   - bootstrapper launches the MSI successfully
    - agent launches in the user session after logon
    - tray app launches
    - first-run setup can save config
@@ -25,8 +30,9 @@
 ## Publish
 
 1. Create a GitHub release tag matching the version.
-2. Upload the MSI as a release asset.
-3. Include the SHA256 in the release notes.
+2. Publish the bootstrapper EXE as the primary release asset.
+3. Publish the MSI as the advanced/manual prerequisite-satisfied asset.
+4. Include the SHA256 values in the release notes.
 
 ## Current Release Values
 

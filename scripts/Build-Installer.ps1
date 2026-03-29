@@ -83,6 +83,7 @@ $bootstrapper = Get-ChildItem -Path $msiOutput -Filter *-bootstrapper.exe | Sort
 if ($null -ne $msi) {
     $hash = (Get-FileHash -Path $msi.FullName -Algorithm SHA256).Hash
     Write-Host "Version: $Version"
+    Write-Host "Primary installer: bootstrapper EXE"
     Write-Host "MSI: $($msi.FullName)"
     Write-Host "SHA256: $hash"
 }
