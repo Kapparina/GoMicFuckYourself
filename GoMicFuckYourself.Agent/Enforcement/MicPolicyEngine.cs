@@ -3,7 +3,6 @@ using GoMicFuckYourself.Contracts.Configuration;
 using GoMicFuckYourself.Contracts.Enforcement;
 using GoMicFuckYourself.Agent.Audio;
 using GoMicFuckYourself.Agent.Configuration;
-using Microsoft.Extensions.Logging;
 
 namespace GoMicFuckYourself.Agent.Enforcement;
 
@@ -87,12 +86,6 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
     {
         await EnsureStartedAsync(cancellationToken);
         await EnforceAsync("forced", cancellationToken);
-    }
-
-    public async Task PeriodicEnforceAsync(CancellationToken cancellationToken)
-    {
-        await EnsureStartedAsync(cancellationToken);
-        await EnforceAsync("periodic", cancellationToken);
     }
 
     public void Dispose()
@@ -357,6 +350,7 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
     private void LogConfigChange(ServiceConfig previous, ServiceConfig current)
     {
         if (string.Equals(previous.SelectedCaptureDeviceId, current.SelectedCaptureDeviceId, StringComparison.OrdinalIgnoreCase) &&
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
             previous.TargetVolumePercent == current.TargetVolumePercent &&
             previous.EnforcementEnabled == current.EnforcementEnabled)
         {
