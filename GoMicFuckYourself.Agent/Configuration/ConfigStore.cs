@@ -63,6 +63,7 @@ public sealed class ConfigStore : IConfigStore
 
             var json = JsonSerializer.Serialize(config, SerializerOptions);
             File.WriteAllText(_configPath, json);
+            _logger.LogInformation("Saved agent config to {ConfigPath}.", _configPath);
             return Task.CompletedTask;
         }
     }

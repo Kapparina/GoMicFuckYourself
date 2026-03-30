@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Win32;
 using WixToolset.Dtf.WindowsInstaller;
 
@@ -5,6 +6,28 @@ namespace GoMicFuckYourself.Installer;
 
 public static class UninstallCleanupActions
 {
+    [CustomAction]
+    public static ActionResult EnsureAgentEventSource(Session session)
+    {
+        try
+        {
+            if (!EventLog.SourceExists(InstallerConstants.AgentEventSourceName))
+            {
+                EventLog.CreateEventSource(
+                    new EventSourceCreationData(
+                        InstallerConstants.AgentEventSourceName,
+                        InstallerConstants.AgentEventLogName));
+            }
+
+            return ActionResult.Success;
+        }
+        catch (Exception exception)
+        {
+            session.Log($"Failed to create agent event source: {exception}");
+            return ActionResult.Success;
+        }
+    }
+
     [CustomAction]
     public static ActionResult RemoveCurrentUserAutorun(Session session)
     {
@@ -23,6 +46,25 @@ public static class UninstallCleanupActions
         catch (Exception exception)
         {
             session.Log($"Failed to remove current-user autorun entry: {exception}");
+            return ActionResult.Success;
+        }
+    }
+
+    [CustomAction]
+    public static ActionResult RemoveAgentEventSource(Session session)
+    {
+        try
+        {
+            if (EventLog.SourceExists(InstallerConstants.AgentEventSourceName))
+            {
+                EventLog.DeleteEventSource(InstallerConstants.AgentEventSourceName);
+            }
+
+            return ActionResult.Success;
+        }
+        catch (Exception exception)
+        {
+            session.Log($"Failed to remove agent event source: {exception}");
             return ActionResult.Success;
         }
     }

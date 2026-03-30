@@ -62,6 +62,7 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
     public async Task SaveConfigAsync(ServiceConfig config, CancellationToken cancellationToken)
     {
         var normalized = NormalizeConfig(config);
+        var previous = GetConfigSnapshot();
 
         await _configStore.SaveAsync(normalized, cancellationToken);
 
@@ -69,6 +70,8 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
         {
             _config = normalized;
         }
+
+        LogConfigChange(previous, normalized);
 
         await EnforceAsync("config-save", cancellationToken);
     }
@@ -148,16 +151,36 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
         _subscribed = true;
     }
 
-    private void OnCaptureDevicesChanged(object? sender, EventArgs eventArgs) => QueueEnforcement("device-list-change");
+    private void OnCaptureDevicesChanged(object? sender, EventArgs eventArgs)
+    {
+        _logger.LogInformation("Detected capture device list change.");
+        QueueEnforcement("device-list-change");
+    }
 
-    private void OnDefaultCaptureDeviceChanged(object? sender, string deviceId) => QueueEnforcement("default-device-change");
+    private void OnDefaultCaptureDeviceChanged(object? sender, string deviceId)
+    {
+        _logger.LogWarning(
+            "Detected default capture device change to {DeviceId}. Windows Core Audio callbacks do not expose the originating process.",
+            deviceId);
+        QueueEnforcement("default-device-change");
+    }
 
-    private void OnDefaultCommunicationsDeviceChanged(object? sender, string deviceId) => QueueEnforcement("default-communications-change");
+    private void OnDefaultCommunicationsDeviceChanged(object? sender, string deviceId)
+    {
+        _logger.LogWarning(
+            "Detected default communications capture device change to {DeviceId}. Windows Core Audio callbacks do not expose the originating process.",
+            deviceId);
+        QueueEnforcement("default-communications-change");
+    }
 
     private void OnCaptureDeviceStateChanged(object? sender, CaptureDeviceStateChangedEventArgs eventArgs)
     {
         if (string.Equals(eventArgs.DeviceId, GetSelectedDeviceId(), StringComparison.OrdinalIgnoreCase))
         {
+            _logger.LogWarning(
+                "Detected state change for selected capture device {DeviceId}. New state: {State}.",
+                eventArgs.DeviceId,
+                eventArgs.State);
             QueueEnforcement("selected-device-state-change");
         }
     }
@@ -166,6 +189,11 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
     {
         if (string.Equals(eventArgs.DeviceId, GetSelectedDeviceId(), StringComparison.OrdinalIgnoreCase))
         {
+            _logger.LogWarning(
+                "Detected volume change for selected capture device {DeviceId}. New volume: {VolumePercent}. Muted: {IsMuted}. Windows Core Audio callbacks do not expose the originating process.",
+                eventArgs.DeviceId,
+                eventArgs.VolumePercent,
+                eventArgs.IsMuted);
             QueueEnforcement("selected-device-volume-change");
         }
     }
@@ -199,12 +227,14 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
 
             if (!config.EnforcementEnabled)
             {
+                _logger.LogInformation("Skipped microphone enforcement after {Reason} because enforcement is disabled.", reason);
                 SetLastResult(DateTimeOffset.UtcNow, null);
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(config.SelectedCaptureDeviceId))
             {
+                _logger.LogInformation("Skipped microphone enforcement after {Reason} because no microphone is configured.", reason);
                 SetLastResult(DateTimeOffset.UtcNow, null);
                 return;
             }
@@ -212,12 +242,14 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
             var device = _audioController.GetCaptureDevice(config.SelectedCaptureDeviceId);
             if (device is null)
             {
+                _logger.LogError("Configured capture device {DeviceId} was not found during enforcement after {Reason}.", config.SelectedCaptureDeviceId, reason);
                 SetLastResult(null, $"Configured capture device '{config.SelectedCaptureDeviceId}' was not found.");
                 return;
             }
 
             if (device.State != DeviceAvailability.Active)
             {
+                _logger.LogError("Configured capture device {DeviceId} is not active during enforcement after {Reason}. Current state: {State}.", config.SelectedCaptureDeviceId, reason, device.State);
                 SetLastResult(null, $"Configured capture device '{config.SelectedCaptureDeviceId}' is not active.");
                 return;
             }
@@ -229,11 +261,17 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
             if (config.TargetVolumePercent is { } targetVolume &&
                 Math.Abs(device.VolumePercent - targetVolume) > 0.5f)
             {
+                _logger.LogInformation(
+                    "Reverting capture volume for {DeviceId} from {CurrentVolumePercent} to {TargetVolumePercent} after {Reason}.",
+                    config.SelectedCaptureDeviceId,
+                    device.VolumePercent,
+                    targetVolume,
+                    reason);
                 _audioController.SetCaptureVolume(config.SelectedCaptureDeviceId, targetVolume);
             }
 
             SetLastResult(DateTimeOffset.UtcNow, null);
-            _logger.LogDebug("Enforced microphone policy for {DeviceId} after {Reason}.", config.SelectedCaptureDeviceId, reason);
+            _logger.LogInformation("Enforced microphone policy for {DeviceId} after {Reason}.", config.SelectedCaptureDeviceId, reason);
         }
         catch (Exception exception)
         {
@@ -252,6 +290,11 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
         var currentDeviceId = _audioController.GetDefaultCaptureDeviceId(role);
         if (!string.Equals(currentDeviceId, selectedDeviceId, StringComparison.OrdinalIgnoreCase))
         {
+            _logger.LogInformation(
+                "Reverting {Role} default capture device from {CurrentDeviceId} to {SelectedDeviceId}.",
+                role,
+                currentDeviceId ?? "<none>",
+                selectedDeviceId);
             _policyConfigInterop.SetDefaultEndpoint(selectedDeviceId, role);
         }
     }
@@ -309,5 +352,25 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
             TargetVolumePercent = config.TargetVolumePercent,
             EnforcementEnabled = config.EnforcementEnabled
         };
+    }
+
+    private void LogConfigChange(ServiceConfig previous, ServiceConfig current)
+    {
+        if (string.Equals(previous.SelectedCaptureDeviceId, current.SelectedCaptureDeviceId, StringComparison.OrdinalIgnoreCase) &&
+            previous.TargetVolumePercent == current.TargetVolumePercent &&
+            previous.EnforcementEnabled == current.EnforcementEnabled)
+        {
+            _logger.LogInformation("Received config save request, but the configuration did not change.");
+            return;
+        }
+
+        _logger.LogInformation(
+            "Config changed. Device: {PreviousDeviceId} -> {CurrentDeviceId}; Volume: {PreviousVolumePercent} -> {CurrentVolumePercent}; Enforcement: {PreviousEnforcementEnabled} -> {CurrentEnforcementEnabled}.",
+            previous.SelectedCaptureDeviceId ?? "<none>",
+            current.SelectedCaptureDeviceId ?? "<none>",
+            previous.TargetVolumePercent?.ToString("0.##") ?? "<unset>",
+            current.TargetVolumePercent?.ToString("0.##") ?? "<unset>",
+            previous.EnforcementEnabled,
+            current.EnforcementEnabled);
     }
 }

@@ -11,6 +11,8 @@ internal static class InstallerConstants
     public const string UpgradeCode = "7E383A7A-9580-48A6-818E-B173FEE980C8";
 
     public const string LaunchOnExitCheckboxText = "Launch GoMicFuckYourself setup";
+    public const string AgentEventLogName = "Application";
+    public const string AgentEventSourceName = "GoMicFuckYourself.Agent";
 
     public static readonly string InstallRoot = @"%ProgramFiles%\GoMicFuckYourself";
     public static readonly string ProgramDataRoot = @"%CommonAppData%\GoMicFuckYourself";
