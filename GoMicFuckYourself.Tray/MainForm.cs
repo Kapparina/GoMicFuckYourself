@@ -31,12 +31,26 @@ public partial class MainForm : Form
             statusLabel.Text = "First-run setup: choose a microphone and apply the policy.";
             Shown += (_, _) => ShowFirstRunNotification();
         }
+        else
+        {
+            ShowInTaskbar = false;
+            Opacity = 0;
+        }
     }
 
     protected override async void OnShown(EventArgs e)
     {
         base.OnShown(e);
         await LoadStateAsync();
+
+        if (!_firstRun)
+        {
+            HideToTray(showBalloonTip: false);
+        }
+        else
+        {
+            BringToFrontForSetup();
+        }
     }
 
     protected override void OnResize(EventArgs e)
@@ -443,21 +457,39 @@ public partial class MainForm : Form
         trayNotifyIcon.ShowBalloonTip(4000);
     }
 
-    private void HideToTray()
+    private void HideToTray(bool showBalloonTip = true)
     {
+        Opacity = 1;
         Hide();
         ShowInTaskbar = false;
-        trayNotifyIcon.BalloonTipTitle = "GoMicFuckYourself";
-        trayNotifyIcon.BalloonTipText = "Still running in the system tray.";
-        trayNotifyIcon.ShowBalloonTip(2500);
+        if (showBalloonTip)
+        {
+            trayNotifyIcon.BalloonTipTitle = "GoMicFuckYourself";
+            trayNotifyIcon.BalloonTipText = "Still running in the system tray.";
+            trayNotifyIcon.ShowBalloonTip(2500);
+        }
     }
 
     private void RestoreFromTray()
     {
+        Opacity = 1;
         Show();
         ShowInTaskbar = true;
         WindowState = FormWindowState.Normal;
         Activate();
+    }
+
+    private void BringToFrontForSetup()
+    {
+        Opacity = 1;
+        ShowInTaskbar = true;
+        WindowState = FormWindowState.Normal;
+        Show();
+        BringToFront();
+        Activate();
+        TopMost = true;
+        TopMost = false;
+        Focus();
     }
 
     private async void openTrayMenuItem_Click(object? sender, EventArgs e)
