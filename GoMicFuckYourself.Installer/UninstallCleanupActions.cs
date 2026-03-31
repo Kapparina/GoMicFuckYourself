@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
@@ -10,19 +9,6 @@ namespace GoMicFuckYourself.Installer;
 
 public static class UninstallCleanupActions
 {
-    [DataContract]
-    private sealed class InstallerServiceConfig
-    {
-        [DataMember(Name = "selectedCaptureDeviceId")]
-        public string? SelectedCaptureDeviceId { get; set; }
-
-        [DataMember(Name = "targetVolumePercent")]
-        public float? TargetVolumePercent { get; set; }
-
-        [DataMember(Name = "enforcementEnabled")]
-        public bool EnforcementEnabled { get; set; } = true;
-    }
-
     [CustomAction]
     public static ActionResult EnsureDefaultConfig(Session session)
     {
@@ -30,10 +16,7 @@ public static class UninstallCleanupActions
         {
             var configPath = GetConfigPath();
             var configDirectory = Path.GetDirectoryName(configPath);
-            if (string.IsNullOrWhiteSpace(configDirectory))
-            {
-                return ActionResult.Success;
-            }
+            if (string.IsNullOrWhiteSpace(configDirectory)) return ActionResult.Success;
 
             Directory.CreateDirectory(configDirectory);
 
@@ -45,7 +28,8 @@ public static class UninstallCleanupActions
                     return ActionResult.Success;
                 }
 
-                session.Log($"Existing config at '{configPath}' was incompatible. Replacing it with the default config.");
+                session.Log(
+                    $"Existing config at '{configPath}' was incompatible. Replacing it with the default config.");
             }
 
             File.WriteAllText(configPath, CreateDefaultConfigJson(), Encoding.UTF8);
@@ -64,12 +48,10 @@ public static class UninstallCleanupActions
         try
         {
             if (!EventLog.SourceExists(InstallerConstants.AgentEventSourceName))
-            {
                 EventLog.CreateEventSource(
                     new EventSourceCreationData(
                         InstallerConstants.AgentEventSourceName,
                         InstallerConstants.AgentEventLogName));
-            }
 
             return ActionResult.Success;
         }
@@ -84,15 +66,16 @@ public static class UninstallCleanupActions
     public static ActionResult RemoveCurrentUserAutorun(Session session)
     {
         const string runKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
-        const string startupApprovedRunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
+        const string startupApprovedRunKeyPath =
+            @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
         const string trayAutorunName = "GoMicFuckYourself.Tray";
 
         try
         {
-            using var key = Registry.CurrentUser.CreateSubKey(runKeyPath, writable: true);
-            using var startupApprovedKey = Registry.CurrentUser.CreateSubKey(startupApprovedRunKeyPath, writable: true);
-            key?.DeleteValue(trayAutorunName, throwOnMissingValue: false);
-            startupApprovedKey?.DeleteValue(trayAutorunName, throwOnMissingValue: false);
+            using var key = Registry.CurrentUser.CreateSubKey(runKeyPath, true);
+            using var startupApprovedKey = Registry.CurrentUser.CreateSubKey(startupApprovedRunKeyPath, true);
+            key?.DeleteValue(trayAutorunName, false);
+            startupApprovedKey?.DeleteValue(trayAutorunName, false);
             return ActionResult.Success;
         }
         catch (Exception exception)
@@ -108,9 +91,7 @@ public static class UninstallCleanupActions
         try
         {
             if (EventLog.SourceExists(InstallerConstants.AgentEventSourceName))
-            {
                 EventLog.DeleteEventSource(InstallerConstants.AgentEventSourceName);
-            }
 
             return ActionResult.Success;
         }
@@ -129,17 +110,12 @@ public static class UninstallCleanupActions
             var configPath = GetConfigPath();
             var configDirectory = Path.GetDirectoryName(configPath);
 
-            if (File.Exists(configPath))
-            {
-                File.Delete(configPath);
-            }
+            if (File.Exists(configPath)) File.Delete(configPath);
 
             if (!string.IsNullOrWhiteSpace(configDirectory) &&
                 Directory.Exists(configDirectory) &&
                 !Directory.EnumerateFileSystemEntries(configDirectory).Any())
-            {
                 Directory.Delete(configDirectory);
-            }
 
             return ActionResult.Success;
         }
@@ -182,5 +158,18 @@ public static class UninstallCleanupActions
         });
 
         return Encoding.UTF8.GetString(stream.ToArray());
+    }
+
+    [DataContract]
+    private sealed class InstallerServiceConfig
+    {
+        [DataMember(Name = "selectedCaptureDeviceId")]
+        public string? SelectedCaptureDeviceId { get; set; }
+
+        [DataMember(Name = "targetVolumePercent")]
+        public float? TargetVolumePercent { get; set; }
+
+        [DataMember(Name = "enforcementEnabled")]
+        public bool EnforcementEnabled { get; set; } = true;
     }
 }

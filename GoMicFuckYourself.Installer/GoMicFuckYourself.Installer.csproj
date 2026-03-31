@@ -1,33 +1,33 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net48</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <LangVersion>latest</LangVersion>
-    <AssemblyTitle>GoMicFuckYourself Installer</AssemblyTitle>
-    <Description>Builds the MSI installer for GoMicFuckYourself.</Description>
-  </PropertyGroup>
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net48</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <LangVersion>latest</LangVersion>
+        <AssemblyTitle>GoMicFuckYourself Installer</AssemblyTitle>
+        <Description>Builds the MSI installer for GoMicFuckYourself.</Description>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="WixSharp_wix4" Version="2.12.0" />
-    <PackageReference Include="WixToolset.Dtf.WindowsInstaller" Version="4.0.1" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="WixSharp_wix4" Version="2.12.0"/>
+        <PackageReference Include="WixToolset.Dtf.WindowsInstaller" Version="4.0.1"/>
+    </ItemGroup>
 
-  <PropertyGroup>
-    <GeneratedLicenceRtf>$(BaseIntermediateOutputPath)Generated\Licence.rtf</GeneratedLicenceRtf>
-  </PropertyGroup>
+    <PropertyGroup>
+        <GeneratedLicenceRtf>$(BaseIntermediateOutputPath)Generated\Licence.rtf</GeneratedLicenceRtf>
+    </PropertyGroup>
 
-  <Target Name="GenerateInstallerLicenceRtf" BeforeTargets="BeforeBuild">
-    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\scripts\Generate-LicenceRtf.ps1&quot; -LicencePath &quot;$(MSBuildProjectDirectory)\..\LICENCE&quot; -OutputPath &quot;$(MSBuildProjectDirectory)\$(GeneratedLicenceRtf)&quot;" />
-  </Target>
+    <Target Name="GenerateInstallerLicenceRtf" BeforeTargets="BeforeBuild">
+        <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\scripts\Generate-LicenceRtf.ps1&quot; -LicencePath &quot;$(MSBuildProjectDirectory)\..\LICENCE&quot; -OutputPath &quot;$(MSBuildProjectDirectory)\$(GeneratedLicenceRtf)&quot;"/>
+    </Target>
 
-  <ItemGroup>
-    <None Include="$(GeneratedLicenceRtf)">
-      <Link>Assets\Licence.rtf</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
+    <ItemGroup>
+        <None Include="$(GeneratedLicenceRtf)">
+            <Link>Assets\Licence.rtf</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
 
 </Project>

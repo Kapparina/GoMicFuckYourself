@@ -1,6 +1,3 @@
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-
 namespace GoMicFuckYourself.Agent.Enforcement;
 
 public sealed class MicPolicyBackgroundService : BackgroundService

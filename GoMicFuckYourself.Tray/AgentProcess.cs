@@ -11,10 +11,7 @@ internal static class AgentProcess
         try
         {
             var agentPath = ResolveInstalledAgentPath();
-            if (agentPath is null || !File.Exists(agentPath))
-            {
-                return false;
-            }
+            if (agentPath is null || !File.Exists(agentPath)) return false;
 
             using var process = Process.Start(new ProcessStartInfo
             {
@@ -32,25 +29,16 @@ internal static class AgentProcess
 
     public static async Task<bool> EnsureAgentReadyAsync(CancellationToken cancellationToken, bool startIfNeeded)
     {
-        if (await IsAgentReachableAsync(cancellationToken))
-        {
-            return true;
-        }
+        if (await IsAgentReachableAsync(cancellationToken)) return true;
 
-        if (!startIfNeeded || !TryStartInstalledAgent())
-        {
-            return false;
-        }
+        if (!startIfNeeded || !TryStartInstalledAgent()) return false;
 
         var startedAt = DateTime.UtcNow;
         while (DateTime.UtcNow - startedAt < TimeSpan.FromSeconds(12))
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (await IsAgentReachableAsync(cancellationToken))
-            {
-                return true;
-            }
+            if (await IsAgentReachableAsync(cancellationToken)) return true;
 
             await Task.Delay(400, cancellationToken);
         }
@@ -62,7 +50,8 @@ internal static class AgentProcess
     {
         try
         {
-            using var pipe = new NamedPipeClientStream(".", PipeConstants.PipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+            using var pipe = new NamedPipeClientStream(".", PipeConstants.PipeName, PipeDirection.InOut,
+                PipeOptions.Asynchronous);
             await pipe.ConnectAsync(500, cancellationToken);
             return pipe.IsConnected;
         }
@@ -74,12 +63,10 @@ internal static class AgentProcess
 
     public static string? ResolveInstalledAgentPath()
     {
-        var trayDirectory = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var trayDirectory =
+            AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         var installRoot = Directory.GetParent(trayDirectory)?.FullName;
-        if (string.IsNullOrWhiteSpace(installRoot))
-        {
-            return null;
-        }
+        if (string.IsNullOrWhiteSpace(installRoot)) return null;
 
         return Path.Combine(installRoot, "Agent", "GoMicFuckYourself.Agent.exe");
     }

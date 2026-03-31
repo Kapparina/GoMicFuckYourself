@@ -14,7 +14,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\GoMicFuckYourself.Contracts\GoMicFuckYourself.Contracts.csproj" />
+        <ProjectReference Include="..\GoMicFuckYourself.Contracts\GoMicFuckYourself.Contracts.csproj"/>
     </ItemGroup>
 
 </Project>

@@ -5,9 +5,14 @@ namespace GoMicFuckYourself.Tray;
 internal static class AutorunRegistry
 {
     private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    private const string StartupApprovedRunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
+
+    private const string StartupApprovedRunKeyPath =
+        @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
+
     private const string TrayAutorunName = "GoMicFuckYourself.Tray";
-    private static readonly byte[] EnabledStartupValue = [0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+
+    private static readonly byte[] EnabledStartupValue =
+        [0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
 
     public static bool IsEnabledForCurrentUser()
     {
@@ -17,21 +22,16 @@ internal static class AutorunRegistry
 
     public static bool? GetStartupStateForCurrentUser()
     {
-        using var runKey = Registry.CurrentUser.OpenSubKey(RunKeyPath, writable: false);
-        using var startupApprovedKey = Registry.CurrentUser.OpenSubKey(StartupApprovedRunKeyPath, writable: false);
+        using var runKey = Registry.CurrentUser.OpenSubKey(RunKeyPath, false);
+        using var startupApprovedKey = Registry.CurrentUser.OpenSubKey(StartupApprovedRunKeyPath, false);
 
         var hasRunEntry = runKey?.GetValue(TrayAutorunName) is string trayValue &&
                           !string.IsNullOrWhiteSpace(trayValue);
 
-        if (!hasRunEntry && startupApprovedKey?.GetValue(TrayAutorunName) is not byte[])
-        {
-            return null;
-        }
+        if (!hasRunEntry && startupApprovedKey?.GetValue(TrayAutorunName) is not byte[]) return null;
 
         if (startupApprovedKey?.GetValue(TrayAutorunName) is not byte[] startupValue || startupValue.Length == 0)
-        {
             return hasRunEntry;
-        }
 
         return startupValue[0] is 0x02 or 0x06 or 0x08;
     }
@@ -41,14 +41,14 @@ internal static class AutorunRegistry
         var trayPath = ResolveInstalledTrayPath();
 
         if (string.IsNullOrWhiteSpace(trayPath))
-        {
             throw new InvalidOperationException("Installed tray path could not be resolved.");
-        }
 
-        using var key = Registry.CurrentUser.CreateSubKey(RunKeyPath, writable: true)
-                        ?? throw new InvalidOperationException("The current-user Run registry key could not be opened.");
-        using var startupApprovedKey = Registry.CurrentUser.CreateSubKey(StartupApprovedRunKeyPath, writable: true)
-                                       ?? throw new InvalidOperationException("The current-user StartupApproved Run registry key could not be opened.");
+        using var key = Registry.CurrentUser.CreateSubKey(RunKeyPath, true)
+                        ?? throw new InvalidOperationException(
+                            "The current-user Run registry key could not be opened.");
+        using var startupApprovedKey = Registry.CurrentUser.CreateSubKey(StartupApprovedRunKeyPath, true)
+                                       ?? throw new InvalidOperationException(
+                                           "The current-user StartupApproved Run registry key could not be opened.");
 
         key.SetValue(TrayAutorunName, Quote(trayPath));
         startupApprovedKey.SetValue(TrayAutorunName, EnabledStartupValue, RegistryValueKind.Binary);
@@ -58,14 +58,14 @@ internal static class AutorunRegistry
     {
         var trayPath = ResolveInstalledTrayPath();
         if (string.IsNullOrWhiteSpace(trayPath))
-        {
             throw new InvalidOperationException("Installed tray path could not be resolved.");
-        }
 
-        using var key = Registry.CurrentUser.CreateSubKey(RunKeyPath, writable: true)
-                        ?? throw new InvalidOperationException("The current-user Run registry key could not be opened.");
-        using var startupApprovedKey = Registry.CurrentUser.CreateSubKey(StartupApprovedRunKeyPath, writable: true)
-                                       ?? throw new InvalidOperationException("The current-user StartupApproved Run registry key could not be opened.");
+        using var key = Registry.CurrentUser.CreateSubKey(RunKeyPath, true)
+                        ?? throw new InvalidOperationException(
+                            "The current-user Run registry key could not be opened.");
+        using var startupApprovedKey = Registry.CurrentUser.CreateSubKey(StartupApprovedRunKeyPath, true)
+                                       ?? throw new InvalidOperationException(
+                                           "The current-user StartupApproved Run registry key could not be opened.");
 
         key.SetValue(TrayAutorunName, Quote(trayPath));
         startupApprovedKey.SetValue(TrayAutorunName, CreateDisabledStartupValue(), RegistryValueKind.Binary);
@@ -74,18 +74,15 @@ internal static class AutorunRegistry
     public static void SetForCurrentUser(bool enabled)
     {
         if (enabled)
-        {
             EnableForCurrentUser();
-        }
         else
-        {
             DisableForCurrentUser();
-        }
     }
 
     private static string ResolveInstalledTrayPath()
     {
-        var trayDirectory = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var trayDirectory =
+            AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         return Path.Combine(trayDirectory, "GoMicFuckYourself.Tray.exe");
     }
 
@@ -101,5 +98,8 @@ internal static class AutorunRegistry
         return value;
     }
 
-    private static string Quote(string path) => $"\"{path}\"";
+    private static string Quote(string path)
+    {
+        return $"\"{path}\"";
+    }
 }

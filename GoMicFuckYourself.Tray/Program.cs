@@ -1,9 +1,9 @@
 namespace GoMicFuckYourself.Tray;
 
-static class Program
+internal static class Program
 {
     [STAThread]
-    static void Main(string[] args)
+    private static void Main(string[] args)
     {
         var firstRunRequested = args.Any(arg => string.Equals(arg, "--first-run", StringComparison.OrdinalIgnoreCase));
         var firstRun = firstRunRequested || SetupStateDetector.IsSetupPending();
@@ -27,7 +27,7 @@ static class Program
 
             using var _ = firstRunMutex;
             using var firstRunPipeClient = new AgentPipeClient();
-            Application.Run(new MainForm(firstRunPipeClient, firstRun: true));
+            Application.Run(new MainForm(firstRunPipeClient, true));
             return;
         }
 
@@ -43,6 +43,6 @@ static class Program
 
         using var __ = trayMutex;
         using var normalPipeClient = new AgentPipeClient();
-        Application.Run(new MainForm(normalPipeClient, firstRun: false));
+        Application.Run(new MainForm(normalPipeClient, false));
     }
 }

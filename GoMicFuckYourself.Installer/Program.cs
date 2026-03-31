@@ -27,16 +27,11 @@ internal static class Program
     private static string ResolveVersion(IReadOnlyList<string> args)
     {
         for (var index = 0; index < args.Count - 1; index++)
-        {
             if (string.Equals(args[index], "--version", StringComparison.OrdinalIgnoreCase))
             {
                 var version = args[index + 1];
-                if (!string.IsNullOrWhiteSpace(version))
-                {
-                    return version.Trim();
-                }
+                if (!string.IsNullOrWhiteSpace(version)) return version.Trim();
             }
-        }
 
         return InstallerConstants.DefaultVersion;
     }

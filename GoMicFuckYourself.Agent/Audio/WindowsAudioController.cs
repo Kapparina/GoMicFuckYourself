@@ -1,8 +1,7 @@
+using System.Runtime.InteropServices;
 using GoMicFuckYourself.Contracts.Audio;
-using Microsoft.Extensions.Logging;
 using NAudio.CoreAudioApi;
 using NAudio.CoreAudioApi.Interfaces;
-using System.Runtime.InteropServices;
 
 namespace GoMicFuckYourself.Agent.Audio;
 
@@ -13,12 +12,13 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
 
     private readonly MMDeviceEnumerator _enumerator;
     private readonly ILogger<WindowsAudioController> _logger;
+
+    private readonly Dictionary<string, MMDevice> _observedDevices = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock _sync = new();
 
     private readonly Dictionary<string, AudioEndpointVolumeNotificationDelegate> _volumeHandlers =
         new(StringComparer.OrdinalIgnoreCase);
 
-    private readonly Dictionary<string, MMDevice> _observedDevices = new(StringComparer.OrdinalIgnoreCase);
     private bool _disposed;
 
     public WindowsAudioController(ILogger<WindowsAudioController> logger)
@@ -84,17 +84,11 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
 
     public void Dispose()
     {
-        if (_disposed)
-        {
-            return;
-        }
+        if (_disposed) return;
 
         lock (_sync)
         {
-            if (_disposed)
-            {
-                return;
-            }
+            if (_disposed) return;
 
             _enumerator.UnregisterEndpointNotificationCallback(this);
 
@@ -113,10 +107,7 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
 
     public void OnDeviceStateChanged(string deviceId, DeviceState newState)
     {
-        if (string.IsNullOrWhiteSpace(deviceId) || _disposed)
-        {
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(deviceId) || _disposed) return;
 
         lock (_sync)
         {
@@ -130,10 +121,7 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
 
     public void OnDeviceAdded(string pwstrDeviceId)
     {
-        if (_disposed)
-        {
-            return;
-        }
+        if (_disposed) return;
 
         lock (_sync)
         {
@@ -145,10 +133,7 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
 
     public void OnDeviceRemoved(string deviceId)
     {
-        if (_disposed)
-        {
-            return;
-        }
+        if (_disposed) return;
 
         lock (_sync)
         {
@@ -160,10 +145,7 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
 
     public void OnDefaultDeviceChanged(DataFlow flow, Role role, string defaultDeviceId)
     {
-        if (_disposed || flow != DataFlow.Capture)
-        {
-            return;
-        }
+        if (_disposed || flow != DataFlow.Capture) return;
 
         switch (role)
         {
@@ -181,10 +163,7 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
 
     public void OnPropertyValueChanged(string pwstrDeviceId, PropertyKey key)
     {
-        if (_disposed)
-        {
-            return;
-        }
+        if (_disposed) return;
 
         CaptureDevicesChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -302,10 +281,7 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
             using var device = collection[index];
             activeIds.Add(device.ID);
 
-            if (_observedDevices.ContainsKey(device.ID))
-            {
-                continue;
-            }
+            if (_observedDevices.ContainsKey(device.ID)) continue;
 
             TryAddObservedDevice(device.ID);
         }
@@ -423,10 +399,7 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
 
     private void OnVolumeNotification(string deviceId, AudioVolumeNotificationData data)
     {
-        if (_disposed)
-        {
-            return;
-        }
+        if (_disposed) return;
 
         CaptureDeviceVolumeChanged?.Invoke(
             this,
@@ -438,17 +411,20 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
         ObjectDisposedException.ThrowIf(_disposed, this);
     }
 
-    private static Role MapRole(AudioPolicyRole role) =>
-        role switch
+    private static Role MapRole(AudioPolicyRole role)
+    {
+        return role switch
         {
             AudioPolicyRole.Console => Role.Console,
             AudioPolicyRole.Multimedia => Role.Multimedia,
             AudioPolicyRole.Communications => Role.Communications,
             _ => throw new ArgumentOutOfRangeException(nameof(role), role, "Unsupported audio role.")
         };
+    }
 
-    private static DeviceAvailability MapDeviceState(DeviceState state) =>
-        state switch
+    private static DeviceAvailability MapDeviceState(DeviceState state)
+    {
+        return state switch
         {
             DeviceState.Active => DeviceAvailability.Active,
             DeviceState.Disabled => DeviceAvailability.Disabled,
@@ -456,4 +432,5 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
             DeviceState.Unplugged => DeviceAvailability.Unplugged,
             _ => DeviceAvailability.Unknown
         };
+    }
 }

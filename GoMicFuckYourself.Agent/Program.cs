@@ -3,16 +3,12 @@ using GoMicFuckYourself.Agent.Configuration;
 using GoMicFuckYourself.Agent.Enforcement;
 using GoMicFuckYourself.Agent.Ipc;
 using GoMicFuckYourself.Agent.Logging;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.EventLog;
 
 const string mutexName = @"Local\GoMicFuckYourself.Agent";
 
-using var mutex = new Mutex(initiallyOwned: true, mutexName, out var createdNew);
-if (!createdNew)
-{
-    return;
-}
+using var mutex = new Mutex(true, mutexName, out var createdNew);
+if (!createdNew) return;
 
 var builder = Host.CreateApplicationBuilder(args);
 builder.Logging.AddEventLog(settings =>

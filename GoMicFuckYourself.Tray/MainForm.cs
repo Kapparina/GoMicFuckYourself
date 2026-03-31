@@ -7,14 +7,14 @@ namespace GoMicFuckYourself.Tray;
 
 public partial class MainForm : Form
 {
-    private readonly IAgentPipeClient _pipeClient;
     private readonly bool _firstRun;
-    private ServiceConfig? _loadedConfig;
-    private bool _loadedStartOnLoginEnabled;
+    private readonly IAgentPipeClient _pipeClient;
     private bool _allowExit;
     private bool _isBusy;
     private bool _isDirty;
     private bool _isLoadingState;
+    private ServiceConfig? _loadedConfig;
+    private bool _loadedStartOnLoginEnabled;
     private bool _suppressInitialShow;
 
     public MainForm(IAgentPipeClient pipeClient, bool firstRun)
@@ -27,10 +27,7 @@ public partial class MainForm : Form
         HookDirtyTracking();
         UpdateActionButtons();
 
-        if (_firstRun)
-        {
-            Shown += (_, _) => ShowFirstRunNotification();
-        }
+        if (_firstRun) Shown += (_, _) => ShowFirstRunNotification();
     }
 
     protected override async void OnLoad(EventArgs e)
@@ -45,18 +42,12 @@ public partial class MainForm : Form
 
         await LoadStateAsync();
 
-        if (_firstRun)
-        {
-            BringToFrontForSetup();
-        }
+        if (_firstRun) BringToFrontForSetup();
     }
 
     protected override void SetVisibleCore(bool value)
     {
-        if (_suppressInitialShow && !IsHandleCreated)
-        {
-            CreateHandle();
-        }
+        if (_suppressInitialShow && !IsHandleCreated) CreateHandle();
 
         if (_suppressInitialShow && value)
         {
@@ -72,10 +63,7 @@ public partial class MainForm : Form
     {
         base.OnResize(e);
 
-        if (WindowState == FormWindowState.Minimized)
-        {
-            HideToTray();
-        }
+        if (WindowState == FormWindowState.Minimized) HideToTray();
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e)
@@ -98,12 +86,12 @@ public partial class MainForm : Form
 
     private async void saveButton_Click(object? sender, EventArgs e)
     {
-        await SaveAsync(closeAfterSave: false);
+        await SaveAsync(false);
     }
 
     private async void applyButton_Click(object? sender, EventArgs e)
     {
-        await SaveAsync(closeAfterSave: true);
+        await SaveAsync(true);
     }
 
     private async void restartAgentButton_Click(object? sender, EventArgs e)
@@ -112,7 +100,7 @@ public partial class MainForm : Form
         {
             ProcessCoordinator.RestartAgent();
 
-            var isReady = await AgentProcess.EnsureAgentReadyAsync(CancellationToken.None, startIfNeeded: false);
+            var isReady = await AgentProcess.EnsureAgentReadyAsync(CancellationToken.None, false);
             if (!isReady)
             {
                 UpdateError("The agent did not restart in time.");
@@ -135,13 +123,8 @@ public partial class MainForm : Form
                 var (statusResponse, devicesResponse, configResponse) = await LoadAgentStateAsync();
 
                 if (!statusResponse.Success)
-                {
                     statusLabel.Text = statusResponse.Error ?? "Failed to load agent status.";
-                }
-                else if (statusResponse.Payload is { } status)
-                {
-                    statusLabel.Text = BuildStatusText(status);
-                }
+                else if (statusResponse.Payload is { } status) statusLabel.Text = BuildStatusText(status);
 
                 if (!devicesResponse.Success)
                 {
@@ -165,19 +148,14 @@ public partial class MainForm : Form
                     volumeNumericUpDown.Value = Convert.ToDecimal(config.TargetVolumePercent ?? 100f);
 
                     if (!string.IsNullOrWhiteSpace(config.SelectedCaptureDeviceId))
-                    {
                         devicesComboBox.SelectedValue = config.SelectedCaptureDeviceId;
-                    }
                 }
                 else
                 {
                     _loadedConfig = new ServiceConfig();
                 }
 
-                if (devicesComboBox.SelectedIndex < 0 && devices.Count > 0)
-                {
-                    devicesComboBox.SelectedIndex = 0;
-                }
+                if (devicesComboBox.SelectedIndex < 0 && devices.Count > 0) devicesComboBox.SelectedIndex = 0;
 
                 if (string.IsNullOrWhiteSpace(_loadedConfig?.SelectedCaptureDeviceId) &&
                     devicesComboBox.SelectedItem is CaptureDeviceInfo defaultDevice)
@@ -187,13 +165,9 @@ public partial class MainForm : Form
                 }
 
                 if (configResponse.Success)
-                {
                     errorLabel.Text = string.Empty;
-                }
                 else
-                {
                     UpdateError(configResponse.Error ?? "Failed to load config.");
-                }
 
                 UpdateCurrentReadout(statusResponse.Payload, devices, configResponse.Payload);
             }
@@ -209,11 +183,8 @@ public partial class MainForm : Form
         PipeResponse<List<CaptureDeviceInfo>> Devices,
         PipeResponse<ServiceConfig> Config)> LoadAgentStateAsync()
     {
-        var isReady = await AgentProcess.EnsureAgentReadyAsync(CancellationToken.None, startIfNeeded: true);
-        if (!isReady)
-        {
-            throw new TimeoutException("The agent did not start in time.");
-        }
+        var isReady = await AgentProcess.EnsureAgentReadyAsync(CancellationToken.None, true);
+        if (!isReady) throw new TimeoutException("The agent did not start in time.");
 
         return await QueryAgentStateAsync();
     }
@@ -260,7 +231,7 @@ public partial class MainForm : Form
                 AutorunRegistry.SetForCurrentUser(startOnLoginCheckBox.Checked);
                 ProcessCoordinator.RestartAgent();
 
-                var isReady = await AgentProcess.EnsureAgentReadyAsync(CancellationToken.None, startIfNeeded: false);
+                var isReady = await AgentProcess.EnsureAgentReadyAsync(CancellationToken.None, false);
                 if (!isReady)
                 {
                     UpdateError("Configuration was saved, but the agent did not restart in time.");
@@ -288,22 +259,13 @@ public partial class MainForm : Form
             savedSuccessfully = true;
         });
 
-        if (!savedSuccessfully)
-        {
-            return;
-        }
+        if (!savedSuccessfully) return;
 
         await LoadStateAsync();
 
-        if (!string.IsNullOrWhiteSpace(successMessage))
-        {
-            statusLabel.Text = successMessage;
-        }
+        if (!string.IsNullOrWhiteSpace(successMessage)) statusLabel.Text = successMessage;
 
-        if (closeAfterSave)
-        {
-            HideToTray();
-        }
+        if (closeAfterSave) HideToTray();
     }
 
     private async Task RunBusyAsync(Func<Task> action)
@@ -352,10 +314,7 @@ public partial class MainForm : Form
 
     private void HandleSelectedDeviceChanged()
     {
-        if (_isLoadingState)
-        {
-            return;
-        }
+        if (_isLoadingState) return;
 
         if (devicesComboBox.SelectedItem is CaptureDeviceInfo selectedDevice)
         {
@@ -368,10 +327,7 @@ public partial class MainForm : Form
 
     private void MarkDirtyFromUserInput()
     {
-        if (_isLoadingState)
-        {
-            return;
-        }
+        if (_isLoadingState) return;
 
         RefreshDirtyState();
     }
@@ -402,10 +358,7 @@ public partial class MainForm : Form
 
     private void RefreshDirtyState()
     {
-        if (_isLoadingState)
-        {
-            return;
-        }
+        if (_isLoadingState) return;
 
         var currentDeviceId = (devicesComboBox.SelectedItem as CaptureDeviceInfo)?.Id;
         var currentVolume = (float)volumeNumericUpDown.Value;
@@ -427,18 +380,14 @@ public partial class MainForm : Form
 
     private static string BuildStatusText(MicEnforcementStatus status)
     {
-        if (!status.IsConfigured)
-        {
-            return "Agent is running. No microphone is configured yet.";
-        }
+        if (!status.IsConfigured) return "Agent is running. No microphone is configured yet.";
 
         if (!string.IsNullOrWhiteSpace(status.LastError))
-        {
             return $"Configured mic: {status.SelectedCaptureDeviceId}. Last error: {status.LastError}";
-        }
 
         var volumeText = status.TargetVolumePercent is null ? "n/a" : $"{status.TargetVolumePercent:0}%";
-        return $"Configured mic: {status.SelectedCaptureDeviceId} | Volume: {volumeText} | Enforcement: {(status.EnforcementEnabled ? "enabled" : "disabled")}";
+        return
+            $"Configured mic: {status.SelectedCaptureDeviceId} | Volume: {volumeText} | Enforcement: {(status.EnforcementEnabled ? "enabled" : "disabled")}";
     }
 
     private void UpdateCurrentReadout(
@@ -451,7 +400,9 @@ public partial class MainForm : Form
             string.Equals(device.Id, selectedDeviceId, StringComparison.OrdinalIgnoreCase));
 
         currentMicValueLabel.Text = selectedDevice?.FriendlyName
-            ?? (string.IsNullOrWhiteSpace(selectedDeviceId) ? "Not configured" : selectedDeviceId);
+                                    ?? (string.IsNullOrWhiteSpace(selectedDeviceId)
+                                        ? "Not configured"
+                                        : selectedDeviceId);
 
         currentVolumeValueLabel.Text = selectedDevice is null
             ? "n/a"
@@ -468,7 +419,8 @@ public partial class MainForm : Form
     private void ShowFirstRunNotification()
     {
         trayNotifyIcon.BalloonTipTitle = "GoMicFuckYourself";
-        trayNotifyIcon.BalloonTipText = "The app will stay in the tray after setup so microphone enforcement remains easy to manage.";
+        trayNotifyIcon.BalloonTipText =
+            "The app will stay in the tray after setup so microphone enforcement remains easy to manage.";
         trayNotifyIcon.ShowBalloonTip(4000);
     }
 
@@ -520,9 +472,6 @@ public partial class MainForm : Form
 
     private void trayNotifyIcon_MouseDoubleClick(object? sender, MouseEventArgs e)
     {
-        if (e.Button == MouseButtons.Left)
-        {
-            RestoreFromTray();
-        }
+        if (e.Button == MouseButtons.Left) RestoreFromTray();
     }
 }

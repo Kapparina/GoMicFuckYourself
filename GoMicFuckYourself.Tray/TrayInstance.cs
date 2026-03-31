@@ -6,7 +6,7 @@ internal static class TrayInstance
 
     public static bool TryAcquire(out IDisposable? handle)
     {
-        var mutex = new Mutex(initiallyOwned: true, MutexName, out var createdNew);
+        var mutex = new Mutex(true, MutexName, out var createdNew);
         if (createdNew)
         {
             handle = mutex;

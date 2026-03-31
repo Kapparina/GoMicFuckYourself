@@ -1,7 +1,7 @@
 using System.Text.Json;
-using GoMicFuckYourself.Contracts.Configuration;
 using GoMicFuckYourself.Agent.Audio;
 using GoMicFuckYourself.Agent.Enforcement;
+using GoMicFuckYourself.Contracts.Configuration;
 
 namespace GoMicFuckYourself.Agent.Ipc;
 
@@ -13,8 +13,9 @@ public sealed class PipeRequestHandler : IPipeRequestHandler
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    private readonly IMicPolicyEngine _micPolicyEngine;
     private readonly IAudioController _audioController;
+
+    private readonly IMicPolicyEngine _micPolicyEngine;
 
     public PipeRequestHandler(IMicPolicyEngine micPolicyEngine, IAudioController audioController)
     {
@@ -24,10 +25,7 @@ public sealed class PipeRequestHandler : IPipeRequestHandler
 
     public async Task<PipeResponse> HandleAsync(PipeRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.Type))
-        {
-            return Error("Unknown", "Request type is required.");
-        }
+        if (string.IsNullOrWhiteSpace(request.Type)) return Error("Unknown", "Request type is required.");
 
         try
         {
@@ -64,19 +62,23 @@ public sealed class PipeRequestHandler : IPipeRequestHandler
         return Ok(requestType, _micPolicyEngine.GetStatus());
     }
 
-    private static PipeResponse Ok(string type, object? payload) =>
-        new()
+    private static PipeResponse Ok(string type, object? payload)
+    {
+        return new PipeResponse
         {
             Success = true,
             Type = type,
             Payload = payload
         };
+    }
 
-    private static PipeResponse Error(string type, string error) =>
-        new()
+    private static PipeResponse Error(string type, string error)
+    {
+        return new PipeResponse
         {
             Success = false,
             Type = type,
             Error = error
         };
+    }
 }

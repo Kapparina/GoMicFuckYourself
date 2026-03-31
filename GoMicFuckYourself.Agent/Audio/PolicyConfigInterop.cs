@@ -33,7 +33,8 @@ public sealed class PolicyConfigInterop : IPolicyConfigInterop
         int GetMixFormat([MarshalAs(UnmanagedType.LPWStr)] string deviceId, out IntPtr format);
 
         [PreserveSig]
-        int GetDeviceFormat([MarshalAs(UnmanagedType.LPWStr)] string deviceId, [MarshalAs(UnmanagedType.Bool)] bool defaultFormat, out IntPtr format);
+        int GetDeviceFormat([MarshalAs(UnmanagedType.LPWStr)] string deviceId,
+            [MarshalAs(UnmanagedType.Bool)] bool defaultFormat, out IntPtr format);
 
         [PreserveSig]
         int ResetDeviceFormat([MarshalAs(UnmanagedType.LPWStr)] string deviceId);
@@ -42,7 +43,9 @@ public sealed class PolicyConfigInterop : IPolicyConfigInterop
         int SetDeviceFormat([MarshalAs(UnmanagedType.LPWStr)] string deviceId, IntPtr endpointFormat, IntPtr mixFormat);
 
         [PreserveSig]
-        int GetProcessingPeriod([MarshalAs(UnmanagedType.LPWStr)] string deviceId, [MarshalAs(UnmanagedType.Bool)] bool defaultPeriod, out long defaultPeriodInHns, out long minimumPeriodInHns);
+        int GetProcessingPeriod([MarshalAs(UnmanagedType.LPWStr)] string deviceId,
+            [MarshalAs(UnmanagedType.Bool)] bool defaultPeriod, out long defaultPeriodInHns,
+            out long minimumPeriodInHns);
 
         [PreserveSig]
         int SetProcessingPeriod([MarshalAs(UnmanagedType.LPWStr)] string deviceId, ref long periodInHns);
@@ -54,16 +57,19 @@ public sealed class PolicyConfigInterop : IPolicyConfigInterop
         int SetShareMode([MarshalAs(UnmanagedType.LPWStr)] string deviceId, IntPtr mode);
 
         [PreserveSig]
-        int GetPropertyValue([MarshalAs(UnmanagedType.LPWStr)] string deviceId, ref PropertyKey propertyKey, out PropVariant value);
+        int GetPropertyValue([MarshalAs(UnmanagedType.LPWStr)] string deviceId, ref PropertyKey propertyKey,
+            out PropVariant value);
 
         [PreserveSig]
-        int SetPropertyValue([MarshalAs(UnmanagedType.LPWStr)] string deviceId, ref PropertyKey propertyKey, ref PropVariant value);
+        int SetPropertyValue([MarshalAs(UnmanagedType.LPWStr)] string deviceId, ref PropertyKey propertyKey,
+            ref PropVariant value);
 
         [PreserveSig]
         int SetDefaultEndpoint([MarshalAs(UnmanagedType.LPWStr)] string deviceId, ERole role);
 
         [PreserveSig]
-        int SetEndpointVisibility([MarshalAs(UnmanagedType.LPWStr)] string deviceId, [MarshalAs(UnmanagedType.Bool)] bool isVisible);
+        int SetEndpointVisibility([MarshalAs(UnmanagedType.LPWStr)] string deviceId,
+            [MarshalAs(UnmanagedType.Bool)] bool isVisible);
     }
 
     private enum ERole

@@ -40,12 +40,8 @@ internal sealed class PayloadLayout
     private static string? GetOption(string[] args, string name)
     {
         for (var index = 0; index < args.Length - 1; index++)
-        {
             if (string.Equals(args[index], name, StringComparison.OrdinalIgnoreCase))
-            {
                 return args[index + 1];
-            }
-        }
 
         return null;
     }
@@ -53,16 +49,11 @@ internal sealed class PayloadLayout
     private static void EnsureDirectoryExists(string path, string description)
     {
         if (!Directory.Exists(path))
-        {
             throw new DirectoryNotFoundException($"The {description} directory was not found: {path}");
-        }
     }
 
     private static void EnsureFileExists(string path, string description)
     {
-        if (!File.Exists(path))
-        {
-            throw new FileNotFoundException($"The {description} file was not found.", path);
-        }
+        if (!File.Exists(path)) throw new FileNotFoundException($"The {description} file was not found.", path);
     }
 }

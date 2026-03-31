@@ -111,10 +111,7 @@ internal static class InstallerProjectFactory
         foreach (var filePath in Directory.GetFiles(sourceDirectory))
         {
             var fullPath = Path.GetFullPath(filePath);
-            if (pinnedPaths.Contains(fullPath))
-            {
-                continue;
-            }
+            if (pinnedPaths.Contains(fullPath)) continue;
 
             entities.Add(new File(filePath));
         }

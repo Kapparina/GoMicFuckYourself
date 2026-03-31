@@ -1,26 +1,26 @@
+using GoMicFuckYourself.Agent.Audio;
+using GoMicFuckYourself.Agent.Configuration;
 using GoMicFuckYourself.Contracts.Audio;
 using GoMicFuckYourself.Contracts.Configuration;
 using GoMicFuckYourself.Contracts.Enforcement;
-using GoMicFuckYourself.Agent.Audio;
-using GoMicFuckYourself.Agent.Configuration;
 
 namespace GoMicFuckYourself.Agent.Enforcement;
 
 public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
 {
     private readonly IAudioController _audioController;
-    private readonly IPolicyConfigInterop _policyConfigInterop;
     private readonly IConfigStore _configStore;
-    private readonly ILogger<MicPolicyEngine> _logger;
     private readonly SemaphoreSlim _enforcementLock = new(1, 1);
+    private readonly ILogger<MicPolicyEngine> _logger;
+    private readonly IPolicyConfigInterop _policyConfigInterop;
     private readonly Lock _sync = new();
 
     private ServiceConfig _config = new();
+    private bool _disposed;
     private DateTimeOffset? _lastEnforcementUtc;
     private string? _lastError;
     private bool _started;
     private bool _subscribed;
-    private bool _disposed;
 
     public MicPolicyEngine(
         IAudioController audioController,
@@ -32,6 +32,23 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
         _policyConfigInterop = policyConfigInterop;
         _configStore = configStore;
         _logger = logger;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+
+        if (_subscribed)
+        {
+            _audioController.CaptureDevicesChanged -= OnCaptureDevicesChanged;
+            _audioController.DefaultCaptureDeviceChanged -= OnDefaultCaptureDeviceChanged;
+            _audioController.DefaultCommunicationsDeviceChanged -= OnDefaultCommunicationsDeviceChanged;
+            _audioController.CaptureDeviceStateChanged -= OnCaptureDeviceStateChanged;
+            _audioController.CaptureDeviceVolumeChanged -= OnCaptureDeviceVolumeChanged;
+        }
+
+        _enforcementLock.Dispose();
+        _disposed = true;
     }
 
     public MicEnforcementStatus GetStatus()
@@ -88,41 +105,15 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
         await EnforceAsync("forced", cancellationToken);
     }
 
-    public void Dispose()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        if (_subscribed)
-        {
-            _audioController.CaptureDevicesChanged -= OnCaptureDevicesChanged;
-            _audioController.DefaultCaptureDeviceChanged -= OnDefaultCaptureDeviceChanged;
-            _audioController.DefaultCommunicationsDeviceChanged -= OnDefaultCommunicationsDeviceChanged;
-            _audioController.CaptureDeviceStateChanged -= OnCaptureDeviceStateChanged;
-            _audioController.CaptureDeviceVolumeChanged -= OnCaptureDeviceVolumeChanged;
-        }
-
-        _enforcementLock.Dispose();
-        _disposed = true;
-    }
-
     private async Task EnsureStartedAsync(CancellationToken cancellationToken)
     {
-        if (_started)
-        {
-            return;
-        }
+        if (_started) return;
 
         var config = NormalizeConfig(await _configStore.LoadAsync(cancellationToken));
 
         lock (_sync)
         {
-            if (_started)
-            {
-                return;
-            }
+            if (_started) return;
 
             _config = config;
             _started = true;
@@ -131,10 +122,7 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
 
     private void EnsureSubscribed()
     {
-        if (_subscribed)
-        {
-            return;
-        }
+        if (_subscribed) return;
 
         _audioController.CaptureDevicesChanged += OnCaptureDevicesChanged;
         _audioController.DefaultCaptureDeviceChanged += OnDefaultCaptureDeviceChanged;
@@ -193,10 +181,7 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
 
     private void QueueEnforcement(string reason)
     {
-        if (_disposed)
-        {
-            return;
-        }
+        if (_disposed) return;
 
         _ = Task.Run(async () =>
         {
@@ -220,14 +205,16 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
 
             if (!config.EnforcementEnabled)
             {
-                _logger.LogInformation("Skipped microphone enforcement after {Reason} because enforcement is disabled.", reason);
+                _logger.LogInformation("Skipped microphone enforcement after {Reason} because enforcement is disabled.",
+                    reason);
                 SetLastResult(DateTimeOffset.UtcNow, null);
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(config.SelectedCaptureDeviceId))
             {
-                _logger.LogInformation("Skipped microphone enforcement after {Reason} because no microphone is configured.", reason);
+                _logger.LogInformation(
+                    "Skipped microphone enforcement after {Reason} because no microphone is configured.", reason);
                 SetLastResult(DateTimeOffset.UtcNow, null);
                 return;
             }
@@ -235,14 +222,18 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
             var device = _audioController.GetCaptureDevice(config.SelectedCaptureDeviceId);
             if (device is null)
             {
-                _logger.LogError("Configured capture device {DeviceId} was not found during enforcement after {Reason}.", config.SelectedCaptureDeviceId, reason);
+                _logger.LogError(
+                    "Configured capture device {DeviceId} was not found during enforcement after {Reason}.",
+                    config.SelectedCaptureDeviceId, reason);
                 SetLastResult(null, $"Configured capture device '{config.SelectedCaptureDeviceId}' was not found.");
                 return;
             }
 
             if (device.State != DeviceAvailability.Active)
             {
-                _logger.LogError("Configured capture device {DeviceId} is not active during enforcement after {Reason}. Current state: {State}.", config.SelectedCaptureDeviceId, reason, device.State);
+                _logger.LogError(
+                    "Configured capture device {DeviceId} is not active during enforcement after {Reason}. Current state: {State}.",
+                    config.SelectedCaptureDeviceId, reason, device.State);
                 SetLastResult(null, $"Configured capture device '{config.SelectedCaptureDeviceId}' is not active.");
                 return;
             }
@@ -264,7 +255,8 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
             }
 
             SetLastResult(DateTimeOffset.UtcNow, null);
-            _logger.LogInformation("Enforced microphone policy for {DeviceId} after {Reason}.", config.SelectedCaptureDeviceId, reason);
+            _logger.LogInformation("Enforced microphone policy for {DeviceId} after {Reason}.",
+                config.SelectedCaptureDeviceId, reason);
         }
         catch (Exception exception)
         {
@@ -312,10 +304,7 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
     {
         lock (_sync)
         {
-            if (enforcedAtUtc is not null)
-            {
-                _lastEnforcementUtc = enforcedAtUtc;
-            }
+            if (enforcedAtUtc is not null) _lastEnforcementUtc = enforcedAtUtc;
 
             _lastError = error;
         }
@@ -349,7 +338,8 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
 
     private void LogConfigChange(ServiceConfig previous, ServiceConfig current)
     {
-        if (string.Equals(previous.SelectedCaptureDeviceId, current.SelectedCaptureDeviceId, StringComparison.OrdinalIgnoreCase) &&
+        if (string.Equals(previous.SelectedCaptureDeviceId, current.SelectedCaptureDeviceId,
+                StringComparison.OrdinalIgnoreCase) &&
             // ReSharper disable once CompareOfFloatsByEqualityOperator
             previous.TargetVolumePercent == current.TargetVolumePercent &&
             previous.EnforcementEnabled == current.EnforcementEnabled)

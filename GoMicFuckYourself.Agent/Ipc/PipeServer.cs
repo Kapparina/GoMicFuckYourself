@@ -51,7 +51,7 @@ public sealed class PipeServer(IPipeRequestHandler requestHandler, ILogger<PipeS
 
         try
         {
-            using var reader = new StreamReader(server, Encoding.UTF8, detectEncodingFromByteOrderMarks: false,
+            using var reader = new StreamReader(server, Encoding.UTF8, false,
                 leaveOpen: true);
             await using var writer = new StreamWriter(server, new UTF8Encoding(false), leaveOpen: true);
             writer.AutoFlush = true;
@@ -59,10 +59,7 @@ public sealed class PipeServer(IPipeRequestHandler requestHandler, ILogger<PipeS
             while (!cancellationToken.IsCancellationRequested && server.IsConnected)
             {
                 var line = await reader.ReadLineAsync(cancellationToken);
-                if (line is null)
-                {
-                    break;
-                }
+                if (line is null) break;
 
                 PipeResponse response;
                 try

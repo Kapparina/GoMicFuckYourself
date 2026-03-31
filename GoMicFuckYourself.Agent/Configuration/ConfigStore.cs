@@ -1,6 +1,5 @@
 using System.Text.Json;
 using GoMicFuckYourself.Contracts.Configuration;
-using Microsoft.Extensions.Logging;
 
 namespace GoMicFuckYourself.Agent.Configuration;
 
@@ -12,9 +11,10 @@ public sealed class ConfigStore : IConfigStore
         WriteIndented = true
     };
 
-    private readonly Lock _sync = new();
-    private readonly ILogger<ConfigStore> _logger;
     private readonly string _configPath;
+    private readonly ILogger<ConfigStore> _logger;
+
+    private readonly Lock _sync = new();
 
     public ConfigStore(ILogger<ConfigStore> logger)
     {
@@ -30,10 +30,7 @@ public sealed class ConfigStore : IConfigStore
 
         lock (_sync)
         {
-            if (!File.Exists(_configPath))
-            {
-                return Task.FromResult(new ServiceConfig());
-            }
+            if (!File.Exists(_configPath)) return Task.FromResult(new ServiceConfig());
 
             try
             {
@@ -43,7 +40,8 @@ public sealed class ConfigStore : IConfigStore
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Failed to load agent config from {ConfigPath}. Falling back to defaults.", _configPath);
+                _logger.LogError(exception, "Failed to load agent config from {ConfigPath}. Falling back to defaults.",
+                    _configPath);
                 return Task.FromResult(new ServiceConfig());
             }
         }
@@ -57,7 +55,7 @@ public sealed class ConfigStore : IConfigStore
         lock (_sync)
         {
             var directory = Path.GetDirectoryName(_configPath)
-                ?? throw new InvalidOperationException("Config path has no directory.");
+                            ?? throw new InvalidOperationException("Config path has no directory.");
 
             Directory.CreateDirectory(directory);
 
