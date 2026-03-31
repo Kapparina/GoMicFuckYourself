@@ -8,7 +8,6 @@ internal sealed class PayloadLayout
     public string TrayPayloadRoot { get; set; } = string.Empty;
     public string AgentExecutablePath { get; set; } = string.Empty;
     public string TrayExecutablePath { get; set; } = string.Empty;
-    public string DefaultConfigPath { get; set; } = string.Empty;
 
     public static PayloadLayout Resolve(string[] args)
     {
@@ -18,7 +17,6 @@ internal sealed class PayloadLayout
 
         var agentPayloadRoot = Path.Combine(payloadRoot, "Agent");
         var trayPayloadRoot = Path.Combine(payloadRoot, "Tray");
-        var defaultConfigPath = Path.Combine(outputRoot, "Assets", "agent-config.json");
 
         var agentExecutablePath = Path.Combine(agentPayloadRoot, "GoMicFuckYourself.Agent.exe");
         var trayExecutablePath = Path.Combine(trayPayloadRoot, "GoMicFuckYourself.Tray.exe");
@@ -27,7 +25,6 @@ internal sealed class PayloadLayout
         EnsureDirectoryExists(trayPayloadRoot, "tray payload");
         EnsureFileExists(agentExecutablePath, "agent executable");
         EnsureFileExists(trayExecutablePath, "tray executable");
-        EnsureFileExists(defaultConfigPath, "default config asset");
 
         return new PayloadLayout
         {
@@ -36,8 +33,7 @@ internal sealed class PayloadLayout
             AgentPayloadRoot = agentPayloadRoot,
             TrayPayloadRoot = trayPayloadRoot,
             AgentExecutablePath = agentExecutablePath,
-            TrayExecutablePath = trayExecutablePath,
-            DefaultConfigPath = defaultConfigPath
+            TrayExecutablePath = trayExecutablePath
         };
     }
 
