@@ -24,11 +24,16 @@ When the app opens for the first time:
 4. Choose whether the tray app should start automatically when you sign in to Windows.
 5. Click `Save and close`.
 
-After that, the app will keep enforcing those settings automatically.
+After that, the app will keep enforcing those settings automatically. Future launches start in the tray unless setup is still incomplete or you launch with `--first-run`.
 
 ## Everyday Use
 
-Open `GoMicFuckYourself` from the Start menu or the tray icon.
+Launch `GoMicFuckYourself` from the Start menu if it is not already running. Once configured, it starts into the tray instead of opening the settings window automatically.
+
+To open the settings window after setup:
+
+- use the tray icon context menu
+- or double-click the tray icon
 
 In the app window:
 
@@ -41,8 +46,11 @@ In the app window:
 
 - Only enabled microphones appear in the dropdown.
 - Opening the tray app starts the enforcement agent if it is not already running.
+- Only the tray app is configured for Windows sign-in startup. The tray app starts the agent when needed.
 - Exiting the tray app from its tray menu also stops the agent.
 - If the app is already running, opening it again reuses the existing instance instead of starting another copy.
+- If setup is still pending, the settings window opens automatically on launch.
+- If setup is already complete, the app launches directly into the tray.
 - Saving refreshes the app so the current configuration and current live device state are shown immediately.
 - Whether the app starts at Windows sign-in depends on the `Start automatically when I sign in` checkbox.
 
@@ -62,7 +70,12 @@ If enforcement seems stuck:
 If the app is not visible:
 
 - check the system tray
-- launch `GoMicFuckYourself` from the Start menu
+- launch `GoMicFuckYourself` from the Start menu to start the tray app
+
+If you are upgrading from an older version:
+
+- the installer tries to keep your existing microphone settings if the saved config is still compatible
+- a full uninstall removes the installed app and also removes saved config for the uninstalling machine/user context where possible
 
 ## Developer Docs
 

@@ -64,14 +64,17 @@ When triggered by a tag, the workflow:
 
 ## Versioning
 
-The installer build script derives the version from the latest Git tag by default.
+The installer build script uses two modes:
 
-For example:
+For tagged release builds:
 
 - tag `v0.1.0` becomes installer version `0.1.0`
 - tag `v1.2.3` becomes installer version `1.2.3`
 
-If no tag is available, the script falls back to `0.1.0`.
+For non-tag local builds:
+
+- the MSI gets a numeric dev version derived from UTC time so it does not collide with tagged release installs
+- the tray and agent get a matching file version plus an informational version shaped like `<latest-tag>-dev+<branch>.<sha>`
 
 That same version is also passed into the published tray and agent binaries, so their Windows file properties line up with the release tag.
 
@@ -96,6 +99,8 @@ The workflow publishes:
 - a GitHub Release named from the pushed tag
 - the MSI installer as a release asset
 - automatically generated release notes
+
+The workflow is for tagged releases. Local non-tag builds are still the right way to produce ad hoc development installers.
 
 ## Troubleshooting
 
