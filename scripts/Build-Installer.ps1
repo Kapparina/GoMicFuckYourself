@@ -14,26 +14,80 @@ $msiOutput = Join-Path $root "GoMicFuckYourself.Installer\bin\$Configuration\net
 $agentProject = Join-Path $root "GoMicFuckYourself.Agent\GoMicFuckYourself.Agent.csproj"
 $trayProject = Join-Path $root "GoMicFuckYourself.Tray\GoMicFuckYourself.Tray.csproj"
 $installerProject = Join-Path $root "GoMicFuckYourself.Installer\GoMicFuckYourself.Installer.csproj"
+$informationalVersion = $null
 
 if (-not $Version)
 {
-    $latestTag = ""
+    $exactTag = ""
     try
     {
-        $latestTag = (git -C $root describe --tags --abbrev=0 2> $null).Trim()
+        $exactTag = (git -C $root describe --tags --exact-match 2> $null).Trim()
     }
     catch
     {
     }
 
-    if ($latestTag)
+    if ($exactTag)
     {
-        $Version = $latestTag.TrimStart('v', 'V')
+        $Version = $exactTag.TrimStart('v', 'V')
+        $informationalVersion = $Version
     }
     else
     {
-        $Version = "0.1.0"
+        $latestTag = ""
+        $branchName = "unknown"
+        $commitSha = "unknown"
+
+        try
+        {
+            $latestTag = (git -C $root describe --tags --abbrev=0 2> $null).Trim()
+        }
+        catch
+        {
+        }
+
+        try
+        {
+            $branchName = (git -C $root rev-parse --abbrev-ref HEAD 2> $null).Trim()
+        }
+        catch
+        {
+        }
+
+        try
+        {
+            $commitSha = (git -C $root rev-parse --short HEAD 2> $null).Trim()
+        }
+        catch
+        {
+        }
+
+        if ($latestTag)
+        {
+            $Version = $latestTag.TrimStart('v', 'V')
+        }
+        else
+        {
+            $Version = "0.1.0"
+        }
+
+        $safeBranchName = [System.Text.RegularExpressions.Regex]::Replace($branchName.ToLowerInvariant(), "[^0-9a-z\-]+", "-").Trim('-')
+        if ([string]::IsNullOrWhiteSpace($safeBranchName))
+        {
+            $safeBranchName = "local"
+        }
+
+        if ([string]::IsNullOrWhiteSpace($commitSha))
+        {
+            $commitSha = "unknown"
+        }
+
+        $informationalVersion = "$Version-dev+$safeBranchName.$commitSha"
     }
+}
+else
+{
+    $informationalVersion = $Version
 }
 
 $versionParts = $Version.Split('.')
@@ -68,7 +122,7 @@ try
     -p:Version=$Version `
     -p:AssemblyVersion=$assemblyVersion `
     -p:FileVersion=$assemblyVersion `
-    -p:InformationalVersion=$Version `
+    -p:InformationalVersion=$informationalVersion `
     -o $agentPublish
 
     & dotnet publish $trayProject `
@@ -76,7 +130,7 @@ try
     -p:Version=$Version `
     -p:AssemblyVersion=$assemblyVersion `
     -p:FileVersion=$assemblyVersion `
-    -p:InformationalVersion=$Version `
+    -p:InformationalVersion=$informationalVersion `
     -o $trayPublish
 
     & dotnet run --project $installerProject -c $Configuration -- `
@@ -93,6 +147,7 @@ if ($null -ne $msi)
 {
     $hash = (Get-FileHash -Path $msi.FullName -Algorithm SHA256).Hash
     Write-Host "Version: $Version"
+    Write-Host "InformationalVersion: $informationalVersion"
     Write-Host "MSI: $( $msi.FullName )"
     Write-Host "SHA256: $hash"
 }
