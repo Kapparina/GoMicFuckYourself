@@ -5,21 +5,13 @@ using GoMicFuckYourself.Contracts.Ipc;
 
 namespace GoMicFuckYourself.Agent.Ipc;
 
-public sealed class PipeServer : BackgroundService
+public sealed class PipeServer(IPipeRequestHandler requestHandler, ILogger<PipeServer> logger)
+    : BackgroundService
 {
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
-
-    private readonly IPipeRequestHandler _requestHandler;
-    private readonly ILogger<PipeServer> _logger;
-
-    public PipeServer(IPipeRequestHandler requestHandler, ILogger<PipeServer> logger)
-    {
-        _requestHandler = requestHandler;
-        _logger = logger;
-    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
