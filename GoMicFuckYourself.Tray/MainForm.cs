@@ -15,11 +15,13 @@ public partial class MainForm : Form
     private bool _isBusy;
     private bool _isDirty;
     private bool _isLoadingState;
+    private bool _suppressInitialShow;
 
     public MainForm(IAgentPipeClient pipeClient, bool firstRun)
     {
         _pipeClient = pipeClient;
         _firstRun = firstRun;
+        _suppressInitialShow = !firstRun;
         InitializeComponent();
         InitializeTrayBehavior();
         HookDirtyTracking();
@@ -27,30 +29,43 @@ public partial class MainForm : Form
 
         if (_firstRun)
         {
-            Text = "GoMicFuckYourself Setup";
-            statusLabel.Text = "First-run setup: choose a microphone and apply the policy.";
             Shown += (_, _) => ShowFirstRunNotification();
-        }
-        else
-        {
-            ShowInTaskbar = false;
-            Opacity = 0;
         }
     }
 
-    protected override async void OnShown(EventArgs e)
+    protected override async void OnLoad(EventArgs e)
     {
-        base.OnShown(e);
+        base.OnLoad(e);
+
+        if (_firstRun)
+        {
+            Text = "GoMicFuckYourself Setup";
+            statusLabel.Text = "First-run setup: choose a microphone and apply the policy.";
+        }
+
         await LoadStateAsync();
 
-        if (!_firstRun)
-        {
-            HideToTray(showBalloonTip: false);
-        }
-        else
+        if (_firstRun)
         {
             BringToFrontForSetup();
         }
+    }
+
+    protected override void SetVisibleCore(bool value)
+    {
+        if (_suppressInitialShow && !IsHandleCreated)
+        {
+            CreateHandle();
+        }
+
+        if (_suppressInitialShow && value)
+        {
+            _suppressInitialShow = false;
+            value = false;
+            ShowInTaskbar = false;
+        }
+
+        base.SetVisibleCore(value);
     }
 
     protected override void OnResize(EventArgs e)
@@ -472,7 +487,6 @@ public partial class MainForm : Form
 
     private void RestoreFromTray()
     {
-        Opacity = 1;
         Show();
         ShowInTaskbar = true;
         WindowState = FormWindowState.Normal;
@@ -481,7 +495,6 @@ public partial class MainForm : Form
 
     private void BringToFrontForSetup()
     {
-        Opacity = 1;
         ShowInTaskbar = true;
         WindowState = FormWindowState.Normal;
         Show();
