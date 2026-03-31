@@ -15,6 +15,7 @@ $agentProject = Join-Path $root "GoMicFuckYourself.Agent\GoMicFuckYourself.Agent
 $trayProject = Join-Path $root "GoMicFuckYourself.Tray\GoMicFuckYourself.Tray.csproj"
 $installerProject = Join-Path $root "GoMicFuckYourself.Installer\GoMicFuckYourself.Installer.csproj"
 $informationalVersion = $null
+$fileVersion = $null
 
 if (-not $Version)
 {
@@ -31,6 +32,13 @@ if (-not $Version)
     {
         $Version = $exactTag.TrimStart('v', 'V')
         $informationalVersion = $Version
+        $versionParts = $Version.Split('.')
+        switch ($versionParts.Length)
+        {
+            2 { $fileVersion = "$Version.0.0" }
+            3 { $fileVersion = "$Version.0" }
+            default { $fileVersion = $Version }
+        }
     }
     else
     {
@@ -64,11 +72,11 @@ if (-not $Version)
 
         if ($latestTag)
         {
-            $Version = $latestTag.TrimStart('v', 'V')
+            $baseVersion = $latestTag.TrimStart('v', 'V')
         }
         else
         {
-            $Version = "0.1.0"
+            $baseVersion = "0.1.0"
         }
 
         $safeBranchName = [System.Text.RegularExpressions.Regex]::Replace($branchName.ToLowerInvariant(), "[^0-9a-z\-]+", "-").Trim('-')
@@ -82,20 +90,39 @@ if (-not $Version)
             $commitSha = "unknown"
         }
 
-        $informationalVersion = "$Version-dev+$safeBranchName.$commitSha"
+        $baseVersionParts = $baseVersion.Split('.')
+        if ($baseVersionParts.Length -lt 2)
+        {
+            throw "Base version '$baseVersion' must have at least major.minor components."
+        }
+
+        $majorVersion = [int]$baseVersionParts[0]
+        $minorVersion = [int]$baseVersionParts[1]
+
+        $utcNow = [DateTime]::UtcNow
+        $buildComponent = (($utcNow.Year - 2020) * 1000) + $utcNow.DayOfYear
+        $revisionComponent = ($utcNow.Hour * 100) + $utcNow.Minute
+
+        if ($buildComponent -gt 65535)
+        {
+            throw "Computed build component '$buildComponent' exceeds Windows version limits."
+        }
+
+        $Version = "$majorVersion.$minorVersion.$buildComponent"
+        $fileVersion = "$Version.$revisionComponent"
+        $informationalVersion = "$baseVersion-dev+$safeBranchName.$commitSha"
     }
 }
 else
 {
     $informationalVersion = $Version
-}
-
-$versionParts = $Version.Split('.')
-switch ($versionParts.Length)
-{
-    2 { $assemblyVersion = "$Version.0.0" }
-    3 { $assemblyVersion = "$Version.0" }
-    default { $assemblyVersion = $Version }
+    $versionParts = $Version.Split('.')
+    switch ($versionParts.Length)
+    {
+        2 { $fileVersion = "$Version.0.0" }
+        3 { $fileVersion = "$Version.0" }
+        default { $fileVersion = $Version }
+    }
 }
 
 if (-not (Get-Command wix.exe -ErrorAction SilentlyContinue))
@@ -120,16 +147,16 @@ try
     & dotnet publish $agentProject `
     -c $Configuration `
     -p:Version=$Version `
-    -p:AssemblyVersion=$assemblyVersion `
-    -p:FileVersion=$assemblyVersion `
+    -p:AssemblyVersion=$fileVersion `
+    -p:FileVersion=$fileVersion `
     -p:InformationalVersion=$informationalVersion `
     -o $agentPublish
 
     & dotnet publish $trayProject `
     -c $Configuration `
     -p:Version=$Version `
-    -p:AssemblyVersion=$assemblyVersion `
-    -p:FileVersion=$assemblyVersion `
+    -p:AssemblyVersion=$fileVersion `
+    -p:FileVersion=$fileVersion `
     -p:InformationalVersion=$informationalVersion `
     -o $trayPublish
 
@@ -147,6 +174,7 @@ if ($null -ne $msi)
 {
     $hash = (Get-FileHash -Path $msi.FullName -Algorithm SHA256).Hash
     Write-Host "Version: $Version"
+    Write-Host "FileVersion: $fileVersion"
     Write-Host "InformationalVersion: $informationalVersion"
     Write-Host "MSI: $( $msi.FullName )"
     Write-Host "SHA256: $hash"
