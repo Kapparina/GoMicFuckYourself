@@ -2,6 +2,7 @@
   <configuration default="false" name="Rebuild &amp; Reinstall" type="PowerShellRunType" factoryName="PowerShell" focusToolWindowBeforeRun="true" scriptUrl="Start-Installer.ps1" commandOptions="-NoProfile" workingDirectory="$SolutionDir$/scripts" executablePath="pwsh.exe">
     <envs />
     <method v="2">
+      <option name="RunConfigurationTask" enabled="true" run_configuration_name="Stop Running Instances" run_configuration_type="PowerShellRunType" />
       <option name="RunConfigurationTask" enabled="true" run_configuration_name="Uninstall Application" run_configuration_type="PowerShellRunType" />
       <option name="RunConfigurationTask" enabled="true" run_configuration_name="Build Installer" run_configuration_type="PowerShellRunType" />
     </method>
