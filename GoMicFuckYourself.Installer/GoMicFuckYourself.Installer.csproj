@@ -15,12 +15,6 @@
     <PackageReference Include="WixToolset.Dtf.WindowsInstaller" Version="4.0.1" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="Assets\agent-config.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
   <PropertyGroup>
     <GeneratedLicenceRtf>$(BaseIntermediateOutputPath)Generated\Licence.rtf</GeneratedLicenceRtf>
   </PropertyGroup>

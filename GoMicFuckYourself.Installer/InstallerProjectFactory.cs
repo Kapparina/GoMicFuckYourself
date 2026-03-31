@@ -27,8 +27,7 @@ internal static class InstallerProjectFactory
             new Dir(
                 new Id("PROGRAMDATADIR"),
                 InstallerConstants.ProgramDataRoot,
-                new DirPermission("Users", GenericPermission.Read | GenericPermission.Write),
-                new File(payload.DefaultConfigPath)),
+                new DirPermission("Users", GenericPermission.Read | GenericPermission.Write)),
             new LaunchApplicationFromExitDialog("TRAY_EXE", InstallerConstants.LaunchOnExitCheckboxText))
         {
             GUID = new Guid(InstallerConstants.UpgradeCode),
@@ -61,17 +60,29 @@ internal static class InstallerProjectFactory
                     Step.InstallFinalize,
                     new Condition("NOT Installed")),
                 new ManagedAction(
+                    UninstallCleanupActions.EnsureDefaultConfig,
+                    Return.ignore,
+                    When.After,
+                    Step.InstallFinalize,
+                    Condition.NOT_Installed),
+                new ManagedAction(
                     UninstallCleanupActions.RemoveCurrentUserAutorun,
                     Return.ignore,
                     When.Before,
                     Step.RemoveFiles,
-                    new Condition("REMOVE=\"ALL\"")),
+                    new Condition("REMOVE=\"ALL\" AND NOT UPGRADINGPRODUCTCODE")),
                 new ManagedAction(
                     UninstallCleanupActions.RemoveAgentEventSource,
                     Return.ignore,
                     When.Before,
                     Step.RemoveFiles,
-                    new Condition("REMOVE=\"ALL\""))
+                    new Condition("REMOVE=\"ALL\" AND NOT UPGRADINGPRODUCTCODE")),
+                new ManagedAction(
+                    UninstallCleanupActions.RemoveUserConfig,
+                    Return.ignore,
+                    When.Before,
+                    Step.RemoveFiles,
+                    new Condition("REMOVE=\"ALL\" AND NOT UPGRADINGPRODUCTCODE"))
             ]
         };
 
