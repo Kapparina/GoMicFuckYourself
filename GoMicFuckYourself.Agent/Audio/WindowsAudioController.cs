@@ -1,6 +1,8 @@
 using GoMicFuckYourself.Contracts.Audio;
+using Microsoft.Extensions.Logging;
 using NAudio.CoreAudioApi;
 using NAudio.CoreAudioApi.Interfaces;
+using System.Runtime.InteropServices;
 
 namespace GoMicFuckYourself.Agent.Audio;
 
@@ -10,13 +12,18 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
         DeviceState.Active;
 
     private readonly MMDeviceEnumerator _enumerator;
+    private readonly ILogger<WindowsAudioController> _logger;
     private readonly Lock _sync = new();
-    private readonly Dictionary<string, AudioEndpointVolumeNotificationDelegate> _volumeHandlers = new(StringComparer.OrdinalIgnoreCase);
+
+    private readonly Dictionary<string, AudioEndpointVolumeNotificationDelegate> _volumeHandlers =
+        new(StringComparer.OrdinalIgnoreCase);
+
     private readonly Dictionary<string, MMDevice> _observedDevices = new(StringComparer.OrdinalIgnoreCase);
     private bool _disposed;
 
-    public WindowsAudioController()
+    public WindowsAudioController(ILogger<WindowsAudioController> logger)
     {
+        _logger = logger;
         _enumerator = new MMDeviceEnumerator();
         _enumerator.RegisterEndpointNotificationCallback(this);
         RefreshVolumeSubscriptions();
@@ -69,7 +76,8 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
 
         lock (_sync)
         {
-            using var device = TryGetDevice(deviceId) ?? throw new InvalidOperationException($"Capture device '{deviceId}' was not found.");
+            using var device = TryGetDevice(deviceId) ??
+                               throw new InvalidOperationException($"Capture device '{deviceId}' was not found.");
             device.AudioEndpointVolume.MasterVolumeLevelScalar = normalizedVolume;
         }
     }
@@ -101,8 +109,6 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
             _enumerator.Dispose();
             _disposed = true;
         }
-
-        GC.SuppressFinalize(this);
     }
 
     public void OnDeviceStateChanged(string deviceId, DeviceState newState)
@@ -117,7 +123,8 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
             RefreshVolumeSubscriptions();
         }
 
-        CaptureDeviceStateChanged?.Invoke(this, new CaptureDeviceStateChangedEventArgs(deviceId, MapDeviceState(newState)));
+        CaptureDeviceStateChanged?.Invoke(this,
+            new CaptureDeviceStateChangedEventArgs(deviceId, MapDeviceState(newState)));
         CaptureDevicesChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -197,8 +204,25 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
             {
                 devices.Add(CreateCaptureDeviceInfo(device, defaultDeviceId, defaultCommunicationsId));
             }
-            catch
+            catch (COMException exception)
             {
+                _logger.LogDebug(exception,
+                    "Falling back to limited capture device info for {DeviceId} after a COM failure during enumeration.",
+                    device.ID);
+                devices.Add(CreateFallbackCaptureDeviceInfo(device, defaultDeviceId, defaultCommunicationsId));
+            }
+            catch (ObjectDisposedException exception)
+            {
+                _logger.LogDebug(exception,
+                    "Falling back to limited capture device info for {DeviceId} because the device was disposed during enumeration.",
+                    device.ID);
+                devices.Add(CreateFallbackCaptureDeviceInfo(device, defaultDeviceId, defaultCommunicationsId));
+            }
+            catch (InvalidOperationException exception)
+            {
+                _logger.LogDebug(exception,
+                    "Falling back to limited capture device info for {DeviceId} after an invalid device state during enumeration.",
+                    device.ID);
                 devices.Add(CreateFallbackCaptureDeviceInfo(device, defaultDeviceId, defaultCommunicationsId));
             }
         }
@@ -206,7 +230,8 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
         return devices;
     }
 
-    private CaptureDeviceInfo CreateCaptureDeviceInfo(MMDevice device, string? defaultDeviceId = null, string? defaultCommunicationsId = null)
+    private CaptureDeviceInfo CreateCaptureDeviceInfo(MMDevice device, string? defaultDeviceId = null,
+        string? defaultCommunicationsId = null)
     {
         defaultDeviceId ??= TryGetDefaultCaptureDevice(AudioPolicyRole.Multimedia)?.ID;
         defaultCommunicationsId ??= TryGetDefaultCaptureDevice(AudioPolicyRole.Communications)?.ID;
@@ -222,7 +247,8 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
             isMuted);
     }
 
-    private CaptureDeviceInfo CreateFallbackCaptureDeviceInfo(MMDevice device, string? defaultDeviceId, string? defaultCommunicationsId)
+    private CaptureDeviceInfo CreateFallbackCaptureDeviceInfo(MMDevice device, string? defaultDeviceId,
+        string? defaultCommunicationsId)
     {
         return new CaptureDeviceInfo(
             device.ID,
@@ -240,7 +266,11 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
         {
             return _enumerator.GetDefaultAudioEndpoint(DataFlow.Capture, MapRole(role));
         }
-        catch
+        catch (COMException)
+        {
+            return null;
+        }
+        catch (InvalidOperationException)
         {
             return null;
         }
@@ -252,7 +282,11 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
         {
             return _enumerator.GetDevice(deviceId);
         }
-        catch
+        catch (COMException)
+        {
+            return null;
+        }
+        catch (InvalidOperationException)
         {
             return null;
         }
@@ -300,9 +334,23 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
             _observedDevices.Add(observedDevice.ID, observedDevice);
             _volumeHandlers.Add(observedDevice.ID, handler);
         }
-        catch
+        catch (COMException exception)
         {
-            
+            _logger.LogDebug(exception,
+                "Skipping volume subscription for capture device {DeviceId} because endpoint volume is unavailable.",
+                deviceId);
+        }
+        catch (ObjectDisposedException exception)
+        {
+            _logger.LogDebug(exception,
+                "Skipping volume subscription for capture device {DeviceId} because the device was disposed during observation.",
+                deviceId);
+        }
+        catch (InvalidOperationException exception)
+        {
+            _logger.LogDebug(exception,
+                "Skipping volume subscription for capture device {DeviceId} because the device could not be observed.",
+                deviceId);
         }
     }
 
@@ -312,7 +360,11 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
         {
             return (device.AudioEndpointVolume.MasterVolumeLevelScalar * 100f, device.AudioEndpointVolume.Mute);
         }
-        catch
+        catch (COMException)
+        {
+            return (0f, false);
+        }
+        catch (InvalidOperationException)
         {
             return (0f, false);
         }
@@ -326,7 +378,11 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
                 ? $"Capture device {device.ID}"
                 : device.FriendlyName;
         }
-        catch
+        catch (COMException)
+        {
+            return $"Capture device {device.ID}";
+        }
+        catch (InvalidOperationException)
         {
             return $"Capture device {device.ID}";
         }
@@ -338,20 +394,30 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
         {
             return MapDeviceState(device.State);
         }
-        catch
+        catch (COMException)
+        {
+            return DeviceAvailability.Unknown;
+        }
+        catch (InvalidOperationException)
         {
             return DeviceAvailability.Unknown;
         }
     }
 
-    private static void TryUnsubscribeVolumeNotification(MMDevice device, AudioEndpointVolumeNotificationDelegate handler)
+    private static void TryUnsubscribeVolumeNotification(MMDevice device,
+        AudioEndpointVolumeNotificationDelegate handler)
     {
         try
         {
             device.AudioEndpointVolume.OnVolumeNotification -= handler;
         }
-        catch
+        catch (COMException)
         {
+            // Best-effort cleanup; endpoint may already be unavailable.
+        }
+        catch (ObjectDisposedException)
+        {
+            // Best-effort cleanup; device may already be disposed.
         }
     }
 
