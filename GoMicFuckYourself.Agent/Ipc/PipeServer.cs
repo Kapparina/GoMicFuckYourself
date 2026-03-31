@@ -2,26 +2,16 @@ using System.IO.Pipes;
 using System.Text;
 using System.Text.Json;
 using GoMicFuckYourself.Contracts.Ipc;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace GoMicFuckYourself.Agent.Ipc;
 
-public sealed class PipeServer : BackgroundService
+public sealed class PipeServer(IPipeRequestHandler requestHandler, ILogger<PipeServer> logger)
+    : BackgroundService
 {
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
-
-    private readonly IPipeRequestHandler _requestHandler;
-    private readonly ILogger<PipeServer> _logger;
-
-    public PipeServer(IPipeRequestHandler requestHandler, ILogger<PipeServer> logger)
-    {
-        _requestHandler = requestHandler;
-        _logger = logger;
-    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -36,13 +26,21 @@ public sealed class PipeServer : BackgroundService
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
-                server.Dispose();
+                await server.DisposeAsync();
+                break;
+            }
+            catch (IOException exception) when (stoppingToken.IsCancellationRequested ||
+                                                exception.Message.Contains("pipe is being closed",
+                                                    StringComparison.OrdinalIgnoreCase))
+            {
+                await server.DisposeAsync();
+                logger.LogWarning(exception, "Named pipe listener stopped while the pipe was being closed.");
                 break;
             }
             catch (Exception exception)
             {
-                server.Dispose();
-                _logger.LogError(exception, "Named pipe listener failed.");
+                await server.DisposeAsync();
+                logger.LogError(exception, "Named pipe listener failed.");
             }
         }
     }
@@ -53,11 +51,10 @@ public sealed class PipeServer : BackgroundService
 
         try
         {
-            using var reader = new StreamReader(server, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
-            using var writer = new StreamWriter(server, new UTF8Encoding(false), leaveOpen: true)
-            {
-                AutoFlush = true
-            };
+            using var reader = new StreamReader(server, Encoding.UTF8, detectEncodingFromByteOrderMarks: false,
+                leaveOpen: true);
+            await using var writer = new StreamWriter(server, new UTF8Encoding(false), leaveOpen: true);
+            writer.AutoFlush = true;
 
             while (!cancellationToken.IsCancellationRequested && server.IsConnected)
             {
@@ -71,8 +68,8 @@ public sealed class PipeServer : BackgroundService
                 try
                 {
                     var request = JsonSerializer.Deserialize<PipeRequest>(line, SerializerOptions)
-                        ?? throw new InvalidOperationException("Request body is empty.");
-                    response = await _requestHandler.HandleAsync(request, cancellationToken);
+                                  ?? throw new InvalidOperationException("Request body is empty.");
+                    response = await requestHandler.HandleAsync(request, cancellationToken);
                 }
                 catch (Exception exception)
                 {
@@ -96,7 +93,7 @@ public sealed class PipeServer : BackgroundService
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Named pipe client handling failed.");
+            logger.LogError(exception, "Named pipe client handling failed.");
         }
     }
 

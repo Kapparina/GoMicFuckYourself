@@ -14,6 +14,4 @@ public interface IMicPolicyEngine
     Task StartAsync(CancellationToken cancellationToken);
 
     Task ForceEnforceAsync(CancellationToken cancellationToken);
-
-    Task PeriodicEnforceAsync(CancellationToken cancellationToken);
 }

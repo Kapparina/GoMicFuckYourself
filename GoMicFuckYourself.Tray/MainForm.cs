@@ -15,11 +15,13 @@ public partial class MainForm : Form
     private bool _isBusy;
     private bool _isDirty;
     private bool _isLoadingState;
+    private bool _suppressInitialShow;
 
     public MainForm(IAgentPipeClient pipeClient, bool firstRun)
     {
         _pipeClient = pipeClient;
         _firstRun = firstRun;
+        _suppressInitialShow = !firstRun;
         InitializeComponent();
         InitializeTrayBehavior();
         HookDirtyTracking();
@@ -27,16 +29,43 @@ public partial class MainForm : Form
 
         if (_firstRun)
         {
-            Text = "GoMicFuckYourself Setup";
-            statusLabel.Text = "First-run setup: choose a microphone and apply the policy.";
             Shown += (_, _) => ShowFirstRunNotification();
         }
     }
 
-    protected override async void OnShown(EventArgs e)
+    protected override async void OnLoad(EventArgs e)
     {
-        base.OnShown(e);
+        base.OnLoad(e);
+
+        if (_firstRun)
+        {
+            Text = "GoMicFuckYourself Setup";
+            statusLabel.Text = "First-run setup: choose a microphone and apply the policy.";
+        }
+
         await LoadStateAsync();
+
+        if (_firstRun)
+        {
+            BringToFrontForSetup();
+        }
+    }
+
+    protected override void SetVisibleCore(bool value)
+    {
+        if (_suppressInitialShow && !IsHandleCreated)
+        {
+            CreateHandle();
+        }
+
+        if (_suppressInitialShow && value)
+        {
+            _suppressInitialShow = false;
+            value = false;
+            ShowInTaskbar = false;
+        }
+
+        base.SetVisibleCore(value);
     }
 
     protected override void OnResize(EventArgs e)
@@ -443,13 +472,17 @@ public partial class MainForm : Form
         trayNotifyIcon.ShowBalloonTip(4000);
     }
 
-    private void HideToTray()
+    private void HideToTray(bool showBalloonTip = true)
     {
+        Opacity = 1;
         Hide();
         ShowInTaskbar = false;
-        trayNotifyIcon.BalloonTipTitle = "GoMicFuckYourself";
-        trayNotifyIcon.BalloonTipText = "Still running in the system tray.";
-        trayNotifyIcon.ShowBalloonTip(2500);
+        if (showBalloonTip)
+        {
+            trayNotifyIcon.BalloonTipTitle = "GoMicFuckYourself";
+            trayNotifyIcon.BalloonTipText = "Still running in the system tray.";
+            trayNotifyIcon.ShowBalloonTip(2500);
+        }
     }
 
     private void RestoreFromTray()
@@ -458,6 +491,18 @@ public partial class MainForm : Form
         ShowInTaskbar = true;
         WindowState = FormWindowState.Normal;
         Activate();
+    }
+
+    private void BringToFrontForSetup()
+    {
+        ShowInTaskbar = true;
+        WindowState = FormWindowState.Normal;
+        Show();
+        BringToFront();
+        Activate();
+        TopMost = true;
+        TopMost = false;
+        Focus();
     }
 
     private async void openTrayMenuItem_Click(object? sender, EventArgs e)

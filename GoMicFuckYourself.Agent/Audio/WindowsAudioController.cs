@@ -302,6 +302,7 @@ public sealed class WindowsAudioController : IAudioController, IMMNotificationCl
         }
         catch
         {
+            
         }
     }
 

@@ -50,7 +50,19 @@ internal static class InstallerProjectFactory
         project.Actions = new WixSharp.Action[]
         {
             new ManagedAction(
+                UninstallCleanupActions.EnsureAgentEventSource,
+                Return.ignore,
+                When.After,
+                Step.InstallFinalize,
+                new Condition("NOT Installed")),
+            new ManagedAction(
                 UninstallCleanupActions.RemoveCurrentUserAutorun,
+                Return.ignore,
+                When.Before,
+                Step.RemoveFiles,
+                new Condition("REMOVE=\"ALL\"")),
+            new ManagedAction(
+                UninstallCleanupActions.RemoveAgentEventSource,
                 Return.ignore,
                 When.Before,
                 Step.RemoveFiles,
