@@ -91,24 +91,29 @@ if (-not $Version)
         }
 
         $baseVersionParts = $baseVersion.Split('.')
-        if ($baseVersionParts.Length -lt 2)
+        if ($baseVersionParts.Length -lt 1)
         {
-            throw "Base version '$baseVersion' must have at least major.minor components."
+            throw "Base version '$baseVersion' must have at least a major component."
         }
 
         $majorVersion = [int]$baseVersionParts[0]
-        $minorVersion = [int]$baseVersionParts[1]
 
         $utcNow = [DateTime]::UtcNow
-        $buildComponent = (($utcNow.Year - 2020) * 1000) + $utcNow.DayOfYear
-        $revisionComponent = ($utcNow.Hour * 100) + $utcNow.Minute
+        $monthBucket = (($utcNow.Year - 2020) * 12) + $utcNow.Month
+        $minuteOfMonth = (($utcNow.Day - 1) * 1440) + ($utcNow.Hour * 60) + $utcNow.Minute
+        $revisionComponent = $utcNow.Second
 
-        if ($buildComponent -gt 65535)
+        if ($monthBucket -gt 255)
         {
-            throw "Computed build component '$buildComponent' exceeds Windows version limits."
+            throw "Computed month bucket '$monthBucket' exceeds MSI version limits."
         }
 
-        $Version = "$majorVersion.$minorVersion.$buildComponent"
+        if ($minuteOfMonth -gt 65535)
+        {
+            throw "Computed minute-of-month '$minuteOfMonth' exceeds MSI version limits."
+        }
+
+        $Version = "$majorVersion.$monthBucket.$minuteOfMonth"
         $fileVersion = "$Version.$revisionComponent"
         $informationalVersion = "$baseVersion-dev+$safeBranchName.$commitSha"
     }
