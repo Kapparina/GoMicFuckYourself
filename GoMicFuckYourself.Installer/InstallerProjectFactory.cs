@@ -7,11 +7,12 @@ internal static class InstallerProjectFactory
 {
     public static ManagedProject Create(PayloadLayout payload, string version)
     {
+        var displayName = $"{InstallerConstants.ProductName} {version}";
         var agentFile = new File(new Id("AGENT_EXE"), payload.AgentExecutablePath);
         var trayFile = new File(new Id("TRAY_EXE"), payload.TrayExecutablePath);
 
         var project = new ManagedProject(
-            InstallerConstants.ProductName,
+            displayName,
             new Dir(
                 new Id("INSTALLDIR"),
                 InstallerConstants.InstallRoot,
@@ -28,45 +29,50 @@ internal static class InstallerProjectFactory
                 InstallerConstants.ProgramDataRoot,
                 new DirPermission("Users", GenericPermission.Read | GenericPermission.Write),
                 new File(payload.DefaultConfigPath)),
-            new LaunchApplicationFromExitDialog("TRAY_EXE", InstallerConstants.LaunchOnExitCheckboxText));
-
-        project.GUID = new Guid(InstallerConstants.UpgradeCode);
-        project.Version = new Version(version);
-        project.OutFileName = $"{InstallerConstants.ProductName}-{version}";
-        project.OutDir = Path.Combine(payload.OutputRoot, "msi");
-        project.Scope = InstallScope.perMachine;
-        project.Platform = Platform.x64;
-        project.ControlPanelInfo.Manufacturer = InstallerConstants.Manufacturer;
-        project.ControlPanelInfo.Comments = InstallerConstants.Comments;
-        project.ControlPanelInfo.Contact = InstallerConstants.SupportContact;
-        project.ControlPanelInfo.HelpLink = "https://github.com";
-        project.ControlPanelInfo.InstallLocation = "[INSTALLDIR]";
-        project.ControlPanelInfo.NoModify = true;
-        project.ControlPanelInfo.NoRepair = false;
-        project.Description = InstallerConstants.ProductDescription;
-        project.ControlPanelInfo.ProductIcon = payload.TrayExecutablePath;
-        project.MajorUpgradeStrategy = MajorUpgradeStrategy.Default;
-        project.LicenceFile = Path.Combine(AppContext.BaseDirectory, "Assets", "Licence.rtf");
-        project.Actions = new WixSharp.Action[]
+            new LaunchApplicationFromExitDialog("TRAY_EXE", InstallerConstants.LaunchOnExitCheckboxText))
         {
-            new ManagedAction(
-                UninstallCleanupActions.EnsureAgentEventSource,
-                Return.ignore,
-                When.After,
-                Step.InstallFinalize,
-                new Condition("NOT Installed")),
-            new ManagedAction(
-                UninstallCleanupActions.RemoveCurrentUserAutorun,
-                Return.ignore,
-                When.Before,
-                Step.RemoveFiles,
-                new Condition("REMOVE=\"ALL\"")),
-            new ManagedAction(
-                UninstallCleanupActions.RemoveAgentEventSource,
-                Return.ignore,
-                When.Before,
-                Step.RemoveFiles,
-                new Condition("REMOVE=\"ALL\""))
+            GUID = new Guid(InstallerConstants.UpgradeCode),
+            Version = new Version(version),
+            OutFileName = $"{InstallerConstants.ProductName}-{version}",
+            OutDir = Path.Combine(payload.OutputRoot, "msi"),
+            Scope = InstallScope.perMachine,
+            Platform = Platform.x64,
+            ControlPanelInfo =
+            {
+                Manufacturer = InstallerConstants.Manufacturer,
+                Comments = $"{InstallerConstants.Comments} Installed version: {version}.",
+                Contact = InstallerConstants.SupportContact,
+                HelpLink = InstallerConstants.ReleasesUrl,
+                InstallLocation = "[INSTALLDIR]",
+                NoModify = true,
+                NoRepair = false,
+                ProductIcon = payload.TrayExecutablePath
+            },
+            Description =
+                $"{InstallerConstants.ProductDescription} Installing version {version}. Changelog: {InstallerConstants.ReleasesUrl}",
+            MajorUpgradeStrategy = MajorUpgradeStrategy.Default,
+            LicenceFile = Path.Combine(AppContext.BaseDirectory, "Assets", "Licence.rtf"),
+            Actions =
+            [
+                new ManagedAction(
+                    UninstallCleanupActions.EnsureAgentEventSource,
+                    Return.ignore,
+                    When.After,
+                    Step.InstallFinalize,
+                    new Condition("NOT Installed")),
+                new ManagedAction(
+                    UninstallCleanupActions.RemoveCurrentUserAutorun,
+                    Return.ignore,
+                    When.Before,
+                    Step.RemoveFiles,
+                    new Condition("REMOVE=\"ALL\"")),
+                new ManagedAction(
+                    UninstallCleanupActions.RemoveAgentEventSource,
+                    Return.ignore,
+                    When.Before,
+                    Step.RemoveFiles,
+                    new Condition("REMOVE=\"ALL\""))
+            ]
         };
 
         return project;
