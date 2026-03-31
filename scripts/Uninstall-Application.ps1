@@ -2,14 +2,17 @@
 $upgradeCode = '{7E383A7A-9580-48A6-818E-B173FEE980C8}'
 $installer = New-Object -ComObject WindowsInstaller.Installer
 
-$products = $installer.RelatedProducts($upgradeCode)
+$products = @($installer.RelatedProducts($upgradeCode))
 
 if ($products.Count -eq 0)
 {
     Write-Host "No products found with the specified upgrade code."
     exit
 }
-Write-Host "Found $($products.Count) products related to upgrade code: $upgradeCode"
+else
+{
+    Write-Host "Found $( $products.Count ) products related to upgrade code: $upgradeCode"
+}
 foreach ($product in $products)
 {
     Write-Host "Product Code: $product"

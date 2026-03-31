@@ -1,6 +1,8 @@
 ﻿<component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Uninstall Application" type="PowerShellRunType" factoryName="PowerShell" scriptUrl="Uninstall-Application.ps1" commandOptions="-NoProfile" workingDirectory="$SolutionDir$/scripts" executablePath="pwsh.exe">
     <envs />
-    <method v="2" />
+    <method v="2">
+      <option name="RunConfigurationTask" enabled="true" run_configuration_name="Stop Running Instances" run_configuration_type="PowerShellRunType" />
+    </method>
   </configuration>
 </component>
