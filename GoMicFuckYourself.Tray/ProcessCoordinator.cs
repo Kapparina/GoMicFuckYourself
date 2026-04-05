@@ -6,7 +6,6 @@ internal static class ProcessCoordinator
 {
     private const string TrayProcessName = "GoMicFuckYourself.Tray";
     private const string AgentProcessName = "GoMicFuckYourself.Agent";
-    private const string AgentEventSourceName = "GoMicFuckYourself.Agent";
 
     public static void TerminateOtherTrayInstances()
     {
@@ -15,7 +14,7 @@ internal static class ProcessCoordinator
 
     public static void TerminateAgentInstances(bool logTrayRequestedTermination = false)
     {
-        if (logTrayRequestedTermination) LogTrayRequestedTermination();
+        if (logTrayRequestedTermination) TrayEventLogger.LogTrayRequestedTermination();
         TerminateProcesses(AgentProcessName, null);
     }
 
@@ -23,22 +22,6 @@ internal static class ProcessCoordinator
     {
         TerminateAgentInstances();
         AgentProcess.TryStartInstalledAgent();
-    }
-
-    private static void LogTrayRequestedTermination()
-    {
-        try
-        {
-            if (!EventLog.SourceExists(AgentEventSourceName)) return;
-
-            EventLog.WriteEntry(
-                AgentEventSourceName,
-                "Agent termination was requested from the tray application exit command.",
-                EventLogEntryType.Information);
-        }
-        catch
-        {
-        }
     }
 
     private static void TerminateProcesses(string processName, int? currentProcessIdToSkip)
