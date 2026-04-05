@@ -482,7 +482,7 @@ public partial class MainForm : Form
     private void exitTrayMenuItem_Click(object? sender, EventArgs e)
     {
         _allowExit = true;
-        ProcessCoordinator.TerminateAgentInstances();
+        ProcessCoordinator.TerminateAgentInstances(true);
         Close();
     }
 
