@@ -7,6 +7,7 @@ internal static class Program
     {
         var firstRunRequested = args.Any(arg => string.Equals(arg, "--first-run", StringComparison.OrdinalIgnoreCase));
         var firstRun = firstRunRequested || SetupStateDetector.IsSetupPending();
+        TrayEventLogger.LogStartup(firstRunRequested, firstRun);
 
         ApplicationConfiguration.Initialize();
 

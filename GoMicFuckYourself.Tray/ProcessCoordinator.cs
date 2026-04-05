@@ -12,8 +12,9 @@ internal static class ProcessCoordinator
         TerminateProcesses(TrayProcessName, Process.GetCurrentProcess().Id);
     }
 
-    public static void TerminateAgentInstances()
+    public static void TerminateAgentInstances(bool logTrayRequestedTermination = false)
     {
+        if (logTrayRequestedTermination) TrayEventLogger.LogTrayRequestedTermination();
         TerminateProcesses(AgentProcessName, null);
     }
 

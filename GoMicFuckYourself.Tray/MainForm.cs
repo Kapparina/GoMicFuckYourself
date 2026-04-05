@@ -79,6 +79,21 @@ public partial class MainForm : Form
         base.OnFormClosing(e);
     }
 
+    protected override void WndProc(ref Message m)
+    {
+        if (SingleInstanceSignal.IsActivationMessage(m))
+        {
+            BeginInvoke(new Action(async () =>
+            {
+                RestoreFromTray();
+                await LoadStateAsync();
+            }));
+            return;
+        }
+
+        base.WndProc(ref m);
+    }
+
     private async void refreshButton_Click(object? sender, EventArgs e)
     {
         await LoadStateAsync();
@@ -216,6 +231,7 @@ public partial class MainForm : Form
             var saveResponse = await _pipeClient.SaveConfigAsync(new ServiceConfig
             {
                 SelectedCaptureDeviceId = selectedDevice.Id,
+                SelectedCaptureDeviceName = selectedDevice.FriendlyName,
                 TargetVolumePercent = (float)volumeNumericUpDown.Value,
                 EnforcementEnabled = enforcementEnabledCheckBox.Checked
             });
@@ -466,7 +482,7 @@ public partial class MainForm : Form
     private void exitTrayMenuItem_Click(object? sender, EventArgs e)
     {
         _allowExit = true;
-        ProcessCoordinator.TerminateAgentInstances();
+        ProcessCoordinator.TerminateAgentInstances(true);
         Close();
     }
 

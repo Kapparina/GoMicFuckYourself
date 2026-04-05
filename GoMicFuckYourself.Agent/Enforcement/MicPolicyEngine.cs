@@ -110,6 +110,7 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
         if (_started) return;
 
         var config = NormalizeConfig(await _configStore.LoadAsync(cancellationToken));
+        config = await EnrichConfigMetadataAsync(config, cancellationToken);
 
         lock (_sync)
         {
@@ -201,7 +202,7 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
         await _enforcementLock.WaitAsync(cancellationToken);
         try
         {
-            var config = GetConfigSnapshot();
+            var config = await ResolveConfiguredDeviceAsync(GetConfigSnapshot(), cancellationToken);
 
             if (!config.EnforcementEnabled)
             {
@@ -273,15 +274,99 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
     private void EnsureDefaultEndpoint(string selectedDeviceId, AudioPolicyRole role)
     {
         var currentDeviceId = _audioController.GetDefaultCaptureDeviceId(role);
-        if (!string.Equals(currentDeviceId, selectedDeviceId, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(currentDeviceId, selectedDeviceId, StringComparison.OrdinalIgnoreCase)) return;
+
+        _logger.LogInformation(
+            "Reverting {Role} default capture device from {CurrentDeviceId} to {SelectedDeviceId}.",
+            role,
+            currentDeviceId ?? "<none>",
+            selectedDeviceId);
+        _policyConfigInterop.SetDefaultEndpoint(selectedDeviceId, role);
+    }
+
+    private async Task<ServiceConfig> EnrichConfigMetadataAsync(ServiceConfig config, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(config.SelectedCaptureDeviceId) ||
+            !string.IsNullOrWhiteSpace(config.SelectedCaptureDeviceName))
+            return config;
+
+        var device = _audioController.GetCaptureDevice(config.SelectedCaptureDeviceId);
+        if (device is null) return config;
+
+        var enrichedConfig = new ServiceConfig
         {
-            _logger.LogInformation(
-                "Reverting {Role} default capture device from {CurrentDeviceId} to {SelectedDeviceId}.",
-                role,
-                currentDeviceId ?? "<none>",
-                selectedDeviceId);
-            _policyConfigInterop.SetDefaultEndpoint(selectedDeviceId, role);
+            SelectedCaptureDeviceId = config.SelectedCaptureDeviceId,
+            SelectedCaptureDeviceName = device.FriendlyName,
+            TargetVolumePercent = config.TargetVolumePercent,
+            EnforcementEnabled = config.EnforcementEnabled
+        };
+        await PersistResolvedConfigAsync(config, enrichedConfig, cancellationToken, "Captured microphone metadata");
+        return enrichedConfig;
+    }
+
+    private async Task<ServiceConfig> ResolveConfiguredDeviceAsync(ServiceConfig config, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(config.SelectedCaptureDeviceId)) return config;
+
+        var device = _audioController.GetCaptureDevice(config.SelectedCaptureDeviceId);
+        if (device is not null) return config;
+
+        if (string.IsNullOrWhiteSpace(config.SelectedCaptureDeviceName)) return config;
+
+        var candidates = _audioController.GetCaptureDevices()
+            .Where(candidate => candidate.State == DeviceAvailability.Active)
+            .Where(candidate => string.Equals(candidate.FriendlyName, config.SelectedCaptureDeviceName,
+                StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (candidates.Count != 1) return config;
+
+        var resolvedConfig = new ServiceConfig
+        {
+            SelectedCaptureDeviceId = candidates[0].Id,
+            SelectedCaptureDeviceName = candidates[0].FriendlyName,
+            TargetVolumePercent = config.TargetVolumePercent,
+            EnforcementEnabled = config.EnforcementEnabled
+        };
+
+        _logger.LogInformation(
+            "Recovered microphone endpoint identity. Name: {DeviceName}, PreviousDeviceId: {PreviousDeviceId}, NewDeviceId: {NewDeviceId}.",
+            resolvedConfig.SelectedCaptureDeviceName ?? "<unknown>",
+            config.SelectedCaptureDeviceId ?? "<none>",
+            resolvedConfig.SelectedCaptureDeviceId ?? "<none>");
+
+        await PersistResolvedConfigAsync(
+            config,
+            resolvedConfig,
+            cancellationToken,
+            "Recovered selected microphone after the previous endpoint disappeared");
+        return resolvedConfig;
+    }
+
+    private async Task PersistResolvedConfigAsync(
+        ServiceConfig previous,
+        ServiceConfig updated,
+        CancellationToken cancellationToken,
+        string reason)
+    {
+        if (string.Equals(previous.SelectedCaptureDeviceId, updated.SelectedCaptureDeviceId, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(previous.SelectedCaptureDeviceName, updated.SelectedCaptureDeviceName, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        await _configStore.SaveAsync(updated, cancellationToken);
+
+        lock (_sync)
+        {
+            _config = updated;
         }
+
+        _logger.LogInformation(
+            "{Reason}. Device: {PreviousDeviceId} -> {CurrentDeviceId}; Name: {PreviousDeviceName} -> {CurrentDeviceName}.",
+            reason,
+            previous.SelectedCaptureDeviceId ?? "<none>",
+            updated.SelectedCaptureDeviceId ?? "<none>",
+            previous.SelectedCaptureDeviceName ?? "<none>",
+            updated.SelectedCaptureDeviceName ?? "<none>");
     }
 
     private ServiceConfig GetConfigSnapshot()
@@ -319,6 +404,9 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
             SelectedCaptureDeviceId = string.IsNullOrWhiteSpace(config.SelectedCaptureDeviceId)
                 ? null
                 : config.SelectedCaptureDeviceId.Trim(),
+            SelectedCaptureDeviceName = string.IsNullOrWhiteSpace(config.SelectedCaptureDeviceName)
+                ? null
+                : config.SelectedCaptureDeviceName.Trim(),
             TargetVolumePercent = config.TargetVolumePercent is null
                 ? null
                 : Math.Clamp(config.TargetVolumePercent.Value, 0f, 100f),
@@ -331,6 +419,7 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
         return new ServiceConfig
         {
             SelectedCaptureDeviceId = config.SelectedCaptureDeviceId,
+            SelectedCaptureDeviceName = config.SelectedCaptureDeviceName,
             TargetVolumePercent = config.TargetVolumePercent,
             EnforcementEnabled = config.EnforcementEnabled
         };
@@ -349,9 +438,11 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
         }
 
         _logger.LogInformation(
-            "Config changed. Device: {PreviousDeviceId} -> {CurrentDeviceId}; Volume: {PreviousVolumePercent} -> {CurrentVolumePercent}; Enforcement: {PreviousEnforcementEnabled} -> {CurrentEnforcementEnabled}.",
+            "Config changed. Device: {PreviousDeviceId} -> {CurrentDeviceId}; Name: {PreviousDeviceName} -> {CurrentDeviceName}; Volume: {PreviousVolumePercent} -> {CurrentVolumePercent}; Enforcement: {PreviousEnforcementEnabled} -> {CurrentEnforcementEnabled}.",
             previous.SelectedCaptureDeviceId ?? "<none>",
             current.SelectedCaptureDeviceId ?? "<none>",
+            previous.SelectedCaptureDeviceName ?? "<none>",
+            current.SelectedCaptureDeviceName ?? "<none>",
             previous.TargetVolumePercent?.ToString("0.##") ?? "<unset>",
             current.TargetVolumePercent?.ToString("0.##") ?? "<unset>",
             previous.EnforcementEnabled,
