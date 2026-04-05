@@ -329,6 +329,12 @@ public sealed class MicPolicyEngine : IMicPolicyEngine, IDisposable
             EnforcementEnabled = config.EnforcementEnabled
         };
 
+        _logger.LogInformation(
+            "Recovered microphone endpoint identity. Name: {DeviceName}, PreviousDeviceId: {PreviousDeviceId}, NewDeviceId: {NewDeviceId}.",
+            resolvedConfig.SelectedCaptureDeviceName ?? "<unknown>",
+            config.SelectedCaptureDeviceId ?? "<none>",
+            resolvedConfig.SelectedCaptureDeviceId ?? "<none>");
+
         await PersistResolvedConfigAsync(
             config,
             resolvedConfig,
